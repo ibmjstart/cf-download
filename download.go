@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/cloudfoundry/cli/plugin"
+	"io/ioutil"
+	"net/http"
+	"os"
 )
 
 /*
@@ -30,6 +33,23 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	// Ensure that we called the command basic-plugin-command
 	if args[0] == "download" {
 		fmt.Println("Starting file download!")
+		pull()
+	}
+}
+
+func pull() {
+	response, err := http.Get("http://golang.org/")
+	if err != nil {
+		fmt.Printf("%s", err)
+		os.Exit(1)
+	} else {
+		defer response.Body.Close()
+		contents, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			fmt.Printf("%s", err)
+			os.Exit(1)
+		}
+		fmt.Printf("%s\n", string(contents))
 	}
 }
 
