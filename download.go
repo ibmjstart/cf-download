@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/mgutz/ansi"
 	"github.com/cloudfoundry/cli/plugin"
 	"io/ioutil"
 	"net/http"
 	"os"
-)
+	)
 
 /*
 *	This is the struct implementing the interface defined by the core CLI. It can
@@ -45,13 +46,19 @@ func pull() {
 	} else {
 		defer response.Body.Close()
 		contents, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			fmt.Printf("%s", err)
-			os.Exit(1)
-		}
-		fmt.Printf("%s\n", string(contents))
+		check(err)
+		dir, err := os.Getwd()
+		check(err)
+
+		dir += "/google.html"
+		fmt.Printf("Writing directory: %s\n", dir)
+	    err = ioutil.WriteFile(dir, contents, 0644)
+	    check(err)
+	    msg := ansi.Color("File Successfully Downloaded!", "green+b")
+	    defer fmt.Println(msg)
 	}
 }
+
 
 /*
 *	This function must be implemented as part of the	plugin interface
@@ -90,6 +97,14 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 	}
 }
 
+// error check function	
+func check(e error) {
+    if e != nil {
+        fmt.Println("\nError: ", e)
+        os.Exit(3)
+    }
+}
+
 /*
 * Unlike most Go programs, the `Main()` function will not be used to run all of the
 * commands provided in your plugin. Main will be used to initialize the plugin
@@ -109,3 +124,6 @@ func main() {
 	// Plugin code should be written in the Run([]string) method,
 	// ensuring the plugin environment is bootstrapped.
 }
+
+
+
