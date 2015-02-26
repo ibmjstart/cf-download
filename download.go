@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	)
 
 /*
@@ -33,7 +34,38 @@ type downloadPlugin struct{}
 func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) {
 	// Ensure that we called the command basic-plugin-command
 	if args[0] == "download" {
+		if(len(args) != 2){
+			fmt.Println("\nError: Missing App Name")
+        	os.Exit(1)
+		}
+
+		appName := args[1]
+		// Invoke the cf command passed as the set of arguments
+		// after the first argument.
+		//
+		// Calls to plugin.CliCommand([]string) must be done after the invocation
+		// of plugin.Start() to ensure the environment is bootstrapped.
+
+		// cf app APP_NAME --guid
+		appGuidSlice, err := cliConnection.CliCommandWithoutTerminalOutput("app", appName, "--guid")
+		check(err)
+		appGuid := strings.TrimSpace(appGuidSlice[0])
+
+		url := fmt.Sprintf("/v2/apps/%s/instances/%d/files/%s", appGuid, 0, "/app")
+		fmt.Println(url)
+		curlRequest := []string{"curl", url}
+		output, err := cliConnection.CliCommandWithoutTerminalOutput(curlRequest...)
+		check(err)
+
+		// Print the output returned from the CLI command.
+		fmt.Println(output)
+		/*fmt.Println("---------- Command output from the plugin ----------")
+		for index, val := range output {
+			fmt.Println("#", index, " value: ", val)
+		}
+		fmt.Println("----------              FIN               -----------")*/
 		fmt.Println("Starting file download!")
+		
 		pull()
 	}
 }
@@ -111,7 +143,7 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 func check(e error) {
     if e != nil {
         fmt.Println("\nError: ", e)
-        os.Exit(3)
+        os.Exit(1)
     }
 }
 
