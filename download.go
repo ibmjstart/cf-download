@@ -40,34 +40,58 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		}
 
 		appName := args[1]
-		// Invoke the cf command passed as the set of arguments
-		// after the first argument.
-		//
-		// Calls to plugin.CliCommand([]string) must be done after the invocation
-		// of plugin.Start() to ensure the environment is bootstrapped.
 
-		// cf app APP_NAME --guid
-		appGuidSlice, err := cliConnection.CliCommandWithoutTerminalOutput("app", appName, "--guid")
-		check(err)
-		appGuid := strings.TrimSpace(appGuidSlice[0])
-
-		url := fmt.Sprintf("/v2/apps/%s/instances/%d/files/%s", appGuid, 0, "/app")
-		fmt.Println(url)
-		curlRequest := []string{"curl", url}
-		output, err := cliConnection.CliCommandWithoutTerminalOutput(curlRequest...)
+		output, err := getDirString(cliConnection, appName)
 		check(err)
 
 		// Print the output returned from the CLI command.
-		fmt.Println(output)
-		/*fmt.Println("---------- Command output from the plugin ----------")
-		for index, val := range output {
+		files, dirs := parseDir(output)
+
+		fmt.Println("---------- Files ----------")
+		for index, val := range files {
 			fmt.Println("#", index, " value: ", val)
 		}
-		fmt.Println("----------              FIN               -----------")*/
+		fmt.Println("")
+
+		fmt.Println("---------- Directories ----------")
+		for index, val := range dirs {
+			fmt.Println("#", index, " value: ", val)
+		}
+		fmt.Println("")
+
 		fmt.Println("Starting file download!")
-		
 		pull()
 	}
+}
+
+func getDirString(cliConnection plugin.CliConnection, appName string) (string, error) {
+	appGuidSlice, err := cliConnection.CliCommandWithoutTerminalOutput("app", appName, "--guid")
+	check(err)
+	appGuid := strings.TrimSpace(appGuidSlice[0])
+
+	url := fmt.Sprintf("/v2/apps/%s/instances/%d/files/%s", appGuid, 0, "/app")
+	fmt.Println(url)
+	curlRequest := []string{"curl", url}
+	output, err := cliConnection.CliCommandWithoutTerminalOutput(curlRequest...)
+	check(err)
+
+	return output[0], nil
+}
+
+func parseDir(dir string) ([]string, []string) {
+// PRE: takes in a string of the directory and filesizes
+// POST: FCTVAL==[]string of only filenames and folders without filesizes
+    filesSlice := strings.Fields(dir)
+    var files, dirs []string
+    for i := 0; i < len(filesSlice); i+=2 {
+    	if strings.HasSuffix(filesSlice[i], "/") {
+    		dirs = append(dirs, filesSlice[i])
+    	} else {
+			files = append(files, filesSlice[i])
+    	}
+            
+    }
+    return files, dirs
 }
 
 func pull() {
