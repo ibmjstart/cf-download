@@ -45,15 +45,25 @@ func pull() {
 		os.Exit(1)
 	} else {
 		defer response.Body.Close()
+
 		contents, err := ioutil.ReadAll(response.Body)
 		check(err)
+
 		dir, err := os.Getwd()
 		check(err)
 
-		dir += "/google.html"
+		dir += "/temp/"
+		//create dir if does not exist
+		err = os.MkdirAll(dir, 0755)
+		check(err)
+
+		// write file to dir
+		filename := "google.html"
+		dir += filename
 		fmt.Printf("Writing directory: %s\n", dir)
 	    err = ioutil.WriteFile(dir, contents, 0644)
 	    check(err)
+
 	    msg := ansi.Color("File Successfully Downloaded!", "green+b")
 	    defer fmt.Println(msg)
 	}
