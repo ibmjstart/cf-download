@@ -16,6 +16,11 @@ import (
  */
 type downloadPlugin struct{}
 
+type file struct {
+	writePath string
+	content   string
+}
+
 /*
 *	This function must be implemented by any plugin because it is part of the
 *	plugin interface defined by the core CLI.
@@ -37,13 +42,16 @@ var (
 	appName              string
 )
 
+//var master = make(chan string)
+//var wg sync.WaitGroup
+
 func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) {
 	connection = cliConnection
 
 	// Ensure that we called the command download
 	if args[0] == "download" {
 
-		if len(args) != 2 {
+		if len(args) < 2 {
 			fmt.Println("\nError: Missing App Name")
 			os.Exit(1)
 		}
@@ -54,7 +62,13 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		appName = args[1]
 		rootWorkingDirectory = workingDir + "/" + appName + "-download/"
 
-		startingPath := "/app/node_modules/jade/node_modules/commander/"
+		startingPath := "/"
+		if len(args) == 3 {
+			startingPath = args[2]
+			if !strings.HasSuffix(startingPath, "/") {
+				startingPath += "/"
+			}
+		}
 		files, dirs := parseDir(startingPath)
 
 		fmt.Println("Starting file download!")
@@ -67,7 +81,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 func parseDir(readPath string) ([]string, []string) {
 	fmt.Println("\ncf files", appName, readPath)
 	dirSlice, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath)
-	if strings.Contains(dirSlice[1], "App capstone not found") {
+	if strings.Contains(dirSlice[1], "not found") {
 		errormsg := ansi.Color("Error: "+appName+" app not found (check space and org)", "red+b")
 		fmt.Println(errormsg)
 	}
@@ -76,7 +90,6 @@ func parseDir(readPath string) ([]string, []string) {
 	dir := dirSlice[3]
 
 	if strings.Contains(dir, "No files found") {
-		fmt.Println("NO FILES")
 		return nil, nil
 	}
 
@@ -98,7 +111,7 @@ func downloadFile(readPath, writePath string) error {
 
 	file, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath)
 
-	if strings.Contains(file[2], "status code: 405, error code: 0") {
+	if strings.Contains(file[2], "status code") {
 		errormsg := ansi.Color("Server Error: "+readPath+"not downloaded", "red")
 		fmt.Println(errormsg)
 		return nil
@@ -135,12 +148,15 @@ func download(files, dirs []string, readPath, writePath string) error {
 	for _, val := range dirs {
 		dirWPath := writePath + val
 		dirRPath := readPath + val
+		/*//************ REMOVE ***************************************************** REMOVE
+		if strings.Contains(val, "app") {
+			continue
+		}
+		//************ REMOVE ***************************************************** REMOVE*/
 		files, dirs = parseDir(dirRPath)
 
-		if files != nil || dirs != nil {
+		download(files, dirs, dirRPath, dirWPath)
 
-			download(files, dirs, dirRPath, dirWPath)
-		}
 	}
 
 	return nil
