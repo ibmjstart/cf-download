@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/cloudfoundry/cli/plugin"
-	"github.com/mgutz/ansi"
+	//"github.com/mgutz/ansi"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -54,40 +54,26 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		appName = args[1]
 		rootWorkingDirectory = workingDir + "/" + appName + "-download/"
 
-		output, err := getDirString(appName)
-
-		check(err)
-
-		// Print the output returned from the CLI command.
-		files, dirs := parseDir(output)
-
-		fmt.Println("---------- Files ----------")
-		for index, val := range files {
-			fmt.Println("#", index, " value: ", val)
-		}
-		fmt.Println("")
-
-		fmt.Println("---------- Directories ----------")
-		for index, val := range dirs {
-			fmt.Println("#", index, " value: ", val)
-		}
-		fmt.Println("")
+		startingPath := "/"
+		files, dirs := parseDir(startingPath)
 
 		fmt.Println("Starting file download!")
-		download(files, dirs, "/", rootWorkingDirectory)
+		download(files, dirs, startingPath, rootWorkingDirectory)
 	}
 }
 
-func getDirString(appName string) (string, error) {
-	output, err := connection.CliCommandWithoutTerminalOutput("files", appName)
+func parseDir(readPath string) ([]string, []string) {
+	fmt.Println("\ncf files", appName, readPath)
+	dirSlice, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath)
 	check(err)
 
-	return output[3], nil
-}
+	dir := dirSlice[3]
 
-func parseDir(dir string) ([]string, []string) {
-	// PRE: takes in a string of the directory and filesizes
-	// POST: FCTVAL==[]string of only filenames and folders without filesizes
+	if strings.Contains(dir, "No files found") {
+		fmt.Println("NO FILES")
+		return nil, nil
+	}
+
 	filesSlice := strings.Fields(dir)
 	var files, dirs []string
 	for i := 0; i < len(filesSlice); i += 2 {
@@ -102,7 +88,8 @@ func parseDir(dir string) ([]string, []string) {
 }
 
 func downloadFile(readPath, writePath string) error {
-	fmt.Printf("Writing directory: %s\n", readPath)
+	fmt.Println("\ncf files", appName, readPath)
+	fmt.Printf("Writing file: %s\n", readPath)
 
 	file, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath)
 	check(err)
@@ -114,18 +101,20 @@ func downloadFile(readPath, writePath string) error {
 	return nil
 }
 
-func downloadDir(path string) error {
-
-	return nil
-}
-
 func download(files, dirs []string, readPath, writePath string) error {
 
-	if files == nil && dirs == nil {
-		msg := ansi.Color("File Successfully Downloaded!", "green+b")
-		defer fmt.Println(msg)
-		os.Exit(0)
+	fmt.Println("ReadPath: ", readPath, "writePath: ", writePath)
+	fmt.Println("---------- Files ----------")
+	for index, val := range files {
+		fmt.Println("#", index, " value: ", val)
 	}
+	fmt.Println("")
+
+	fmt.Println("---------- Directories ----------")
+	for index, val := range dirs {
+		fmt.Println("#", index, " value: ", val)
+	}
+	fmt.Println("")
 	//create dir if does not exist
 	err := os.MkdirAll(writePath, 0755)
 	check(err)
@@ -134,7 +123,17 @@ func download(files, dirs []string, readPath, writePath string) error {
 		fileWPath := writePath + val
 		fileRPath := readPath + val
 		downloadFile(fileRPath, fileWPath)
+	}
 
+	for _, val := range dirs {
+		dirWPath := writePath + val
+		dirRPath := readPath + val
+		files, dirs = parseDir(dirRPath)
+
+		if files != nil || dirs != nil {
+
+			download(files, dirs, dirRPath, dirWPath)
+		}
 	}
 
 	return nil
