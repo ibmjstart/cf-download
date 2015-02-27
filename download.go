@@ -42,6 +42,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 	// Ensure that we called the command download
 	if args[0] == "download" {
+
 		if len(args) != 2 {
 			fmt.Println("\nError: Missing App Name")
 			os.Exit(1)
@@ -54,6 +55,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		rootWorkingDirectory = workingDir + "/" + appName + "-download/"
 
 		output, err := getDirString(appName)
+
 		check(err)
 
 		// Print the output returned from the CLI command.
@@ -132,6 +134,7 @@ func download(files, dirs []string, readPath, writePath string) error {
 		fileWPath := writePath + val
 		fileRPath := readPath + val
 		downloadFile(fileRPath, fileWPath)
+
 	}
 
 	return nil
