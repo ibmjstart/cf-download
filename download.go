@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/cloudfoundry/cli/plugin"
-	//"github.com/mgutz/ansi"
+	"github.com/mgutz/ansi"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -54,17 +54,23 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		appName = args[1]
 		rootWorkingDirectory = workingDir + "/" + appName + "-download/"
 
-		startingPath := "/"
+		startingPath := "/app/node_modules/jade/node_modules/commander/"
 		files, dirs := parseDir(startingPath)
 
 		fmt.Println("Starting file download!")
 		download(files, dirs, startingPath, rootWorkingDirectory)
+		msg := ansi.Color("File Successfully Downloaded!", "green+b")
+		defer fmt.Println(msg)
 	}
 }
 
 func parseDir(readPath string) ([]string, []string) {
 	fmt.Println("\ncf files", appName, readPath)
 	dirSlice, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath)
+	if strings.Contains(dirSlice[1], "App capstone not found") {
+		errormsg := ansi.Color("Error: "+appName+" app not found (check space and org)", "red+b")
+		fmt.Println(errormsg)
+	}
 	check(err)
 
 	dir := dirSlice[3]
@@ -89,11 +95,18 @@ func parseDir(readPath string) ([]string, []string) {
 
 func downloadFile(readPath, writePath string) error {
 	fmt.Println("\ncf files", appName, readPath)
-	fmt.Printf("Writing file: %s\n", readPath)
 
 	file, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath)
-	check(err)
 
+	if strings.Contains(file[2], "status code: 405, error code: 0") {
+		errormsg := ansi.Color("Server Error: "+readPath+"not downloaded", "red")
+		fmt.Println(errormsg)
+		return nil
+	} else {
+		check(err)
+	}
+
+	fmt.Printf("Writing file: %s\n", readPath)
 	fileAsString := file[3]
 
 	err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
@@ -105,16 +118,9 @@ func download(files, dirs []string, readPath, writePath string) error {
 
 	fmt.Println("ReadPath: ", readPath, "writePath: ", writePath)
 	fmt.Println("---------- Files ----------")
-	for index, val := range files {
-		fmt.Println("#", index, " value: ", val)
-	}
-	fmt.Println("")
-
+	printSlice(files)
 	fmt.Println("------- Directories -------")
-	for index, val := range dirs {
-		fmt.Println("#", index, " value: ", val)
-	}
-	fmt.Println("")
+	printSlice(dirs)
 
 	//create dir if does not exist
 	err := os.MkdirAll(writePath, 0755)
@@ -183,6 +189,14 @@ func check(e error) {
 		fmt.Println("\nError: ", e)
 		os.Exit(1)
 	}
+}
+
+func printSlice(slice []string) error {
+	for index, val := range slice {
+		fmt.Println("#", index, " value: ", val)
+	}
+	fmt.Println("")
+	return nil
 }
 
 /*
