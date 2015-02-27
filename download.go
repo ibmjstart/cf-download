@@ -110,11 +110,12 @@ func download(files, dirs []string, readPath, writePath string) error {
 	}
 	fmt.Println("")
 
-	fmt.Println("---------- Directories ----------")
+	fmt.Println("------- Directories -------")
 	for index, val := range dirs {
 		fmt.Println("#", index, " value: ", val)
 	}
 	fmt.Println("")
+
 	//create dir if does not exist
 	err := os.MkdirAll(writePath, 0755)
 	check(err)
