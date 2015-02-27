@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/cloudfoundry/cli/plugin"
+	"github.com/mgutz/ansi"
 	"io/ioutil"
-	"net/http"
 	"os"
+	"strings"
 )
 
 /*
@@ -29,28 +30,111 @@ type downloadPlugin struct{}
 *	user facing errors). The CLI will exit 0 if the plugin exits 0 and will exit
 *	1 should the plugin exits nonzero.
  */
+
+var (
+	connection           plugin.CliConnection
+	rootWorkingDirectory string
+	appName              string
+)
+
 func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) {
-	// Ensure that we called the command basic-plugin-command
+	connection = cliConnection
+
+	// Ensure that we called the command download
 	if args[0] == "download" {
+		if len(args) != 2 {
+			fmt.Println("\nError: Missing App Name")
+			os.Exit(1)
+		}
+
+		workingDir, err := os.Getwd()
+		check(err)
+
+		appName = args[1]
+		rootWorkingDirectory = workingDir + "/" + appName + "-download/"
+
+		output, err := getDirString(appName)
+		check(err)
+
+		// Print the output returned from the CLI command.
+		files, dirs := parseDir(output)
+
+		fmt.Println("---------- Files ----------")
+		for index, val := range files {
+			fmt.Println("#", index, " value: ", val)
+		}
+		fmt.Println("")
+
+		fmt.Println("---------- Directories ----------")
+		for index, val := range dirs {
+			fmt.Println("#", index, " value: ", val)
+		}
+		fmt.Println("")
+
 		fmt.Println("Starting file download!")
-		pull()
+		download(files, dirs, "/", rootWorkingDirectory)
 	}
 }
 
-func pull() {
-	response, err := http.Get("http://golang.org/")
-	if err != nil {
-		fmt.Printf("%s", err)
-		os.Exit(1)
-	} else {
-		defer response.Body.Close()
-		contents, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			fmt.Printf("%s", err)
-			os.Exit(1)
+func getDirString(appName string) (string, error) {
+	output, err := connection.CliCommandWithoutTerminalOutput("files", appName)
+	check(err)
+
+	return output[3], nil
+}
+
+func parseDir(dir string) ([]string, []string) {
+	// PRE: takes in a string of the directory and filesizes
+	// POST: FCTVAL==[]string of only filenames and folders without filesizes
+	filesSlice := strings.Fields(dir)
+	var files, dirs []string
+	for i := 0; i < len(filesSlice); i += 2 {
+		if strings.HasSuffix(filesSlice[i], "/") {
+			dirs = append(dirs, filesSlice[i])
+		} else {
+			files = append(files, filesSlice[i])
 		}
-		fmt.Printf("%s\n", string(contents))
+
 	}
+	return files, dirs
+}
+
+func downloadFile(readPath, writePath string) error {
+	fmt.Printf("Writing directory: %s\n", readPath)
+
+	file, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath)
+	check(err)
+
+	fileAsString := file[3]
+
+	err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
+	check(err)
+	return nil
+}
+
+func downloadDir(path string) error {
+
+	return nil
+}
+
+func download(files, dirs []string, readPath, writePath string) error {
+
+	if files == nil && dirs == nil {
+		msg := ansi.Color("File Successfully Downloaded!", "green+b")
+		defer fmt.Println(msg)
+		os.Exit(0)
+	}
+	//create dir if does not exist
+	err := os.MkdirAll(writePath, 0755)
+	check(err)
+
+	for _, val := range files {
+		fileWPath := writePath + val
+		fileRPath := readPath + val
+		downloadFile(fileRPath, fileWPath)
+	}
+
+	return nil
 }
 
 /*
@@ -87,6 +171,14 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 				},
 			},
 		},
+	}
+}
+
+// error check function
+func check(e error) {
+	if e != nil {
+		fmt.Println("\nError: ", e)
+		os.Exit(1)
 	}
 }
 

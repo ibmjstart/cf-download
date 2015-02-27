@@ -1,0 +1,5 @@
+---
+buildpack_path: /var/vcap/data/dea_next/admin_buildpacks/0b947611-182e-454c-8c4d-60d6f2e54f27_010dec3c00d94d09e975790afd3bcb841dea49d9
+detected_buildpack: SDK for Node.js(TM)
+start_command: ./vendor/initial_startup.rb
+
