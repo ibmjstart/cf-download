@@ -1,20 +1,50 @@
 package main
 
 import (
-"fmt"
-"time"
+	"fmt"
+	"sync"
 )
 
-var messages = make(chan string)
+var wg sync.WaitGroup
 
-func
+/*func routine(i int) {
+	defer wg.Done() // 3
+	fmt.Printf("routine %v finished\n", i)
+}
 
 func main() {
-
-	go func() { messages <- "ping" }()
-	for i := 0; i < 20; t++ {
-
+	for i := 0; i < 10; i++ {
+		wg.Add(1)     // 2
+		go routine(i) // *
 	}
-	msg := <-messages
-	fmt.Println(msg)
+	wg.Wait() // 4
+	fmt.Println("main finished")
+}*/
+
+func listener(c chan int, quit chan int) {
+	defer wg.Done()
+	for {
+		select {
+		case x := <-c:
+			fmt.Println(x)
+		case <-quit:
+			fmt.Println("quit")
+
+			return
+		}
+	}
+
+}
+
+func main() {
+	c := make(chan int)
+	quit := make(chan int)
+	wg.Add(1)
+	go listener(c, quit)
+	for i := 0; i < 10; i++ {
+		c <- i
+	}
+	quit <- 0
+	wg.Wait()
+	fmt.Println("main finished")
 }

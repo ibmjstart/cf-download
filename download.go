@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"sync"
+	"time"
 )
 
 /*
@@ -17,8 +19,12 @@ import (
 type downloadPlugin struct{}
 
 type file struct {
-	writePath string
-	content   string
+	writePath, content string
+}
+
+type cliError struct {
+	err    error
+	errMsg string
 }
 
 /*
@@ -42,8 +48,8 @@ var (
 	appName              string
 )
 
-//var master = make(chan string)
-//var wg sync.WaitGroup
+var master = make(chan string)
+var wg sync.WaitGroup
 
 func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) {
 	connection = cliConnection
@@ -57,7 +63,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		}
 
 		workingDir, err := os.Getwd()
-		check(err)
+		check(cliError{err: err, errMsg: "Called by: Run"})
 
 		appName = args[1]
 		rootWorkingDirectory = workingDir + "/" + appName + "-download/"
@@ -69,12 +75,28 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 				startingPath += "/"
 			}
 		}
-		files, dirs := parseDir(startingPath)
+
+		files, dirs := parseDir("/app/public/css/")
 
 		fmt.Println("Starting file download!")
-		download(files, dirs, startingPath, rootWorkingDirectory)
-		msg := ansi.Color("File Successfully Downloaded!", "green+b")
-		defer fmt.Println(msg)
+		wg.Add(1)
+		go download(files, dirs, "/app/public/css/", rootWorkingDirectory)
+		files, dirs = parseDir("/app/public/css/")
+		wg.Add(1)
+		go download(files, dirs, "/app/public/images/", rootWorkingDirectory)
+		files, dirs = parseDir("/app/public/images/")
+		wg.Add(1)
+		go download(files, dirs, "/app/public/js/", rootWorkingDirectory)
+		files, dirs = parseDir("/app/public/js/")
+		/*
+			go download(files, dirs, startingPath, rootWorkingDirectory)
+			msg := ansi.Color("File Successfully Downloaded!", "green+b")
+			defer fmt.Println(msg)
+		*/
+
+		wg.Wait()
+		fmt.Println("EXITING!!!!")
+		time.Sleep(2 * time.Second)
 	}
 }
 
@@ -82,15 +104,16 @@ func parseDir(readPath string) ([]string, []string) {
 	fmt.Println("\ncf files", appName, readPath)
 	dirSlice, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath)
 	if strings.Contains(dirSlice[1], "not found") {
-		errormsg := ansi.Color("Error: "+appName+" app not found (check space and org)", "red+b")
-		fmt.Println(errormsg)
+		errmsg := ansi.Color("Error: "+appName+" app not found (check space and org)", "red+b")
+		fmt.Println(errmsg)
 	}
-	check(err)
-
 	dir := dirSlice[3]
 
 	if strings.Contains(dir, "No files found") {
 		return nil, nil
+	} else {
+		printSlice(dirSlice)
+		check(cliError{err: err, errMsg: "Called by: parseDir [cf files " + appName + " " + readPath + "]"})
 	}
 
 	filesSlice := strings.Fields(dir)
@@ -112,18 +135,18 @@ func downloadFile(readPath, writePath string) error {
 	file, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath)
 
 	if strings.Contains(file[2], "status code") {
-		errormsg := ansi.Color("Server Error: "+readPath+"not downloaded", "red")
-		fmt.Println(errormsg)
+		errmsg := ansi.Color("Server Error: "+readPath+"not downloaded", "red")
+		fmt.Println(errmsg)
 		return nil
 	} else {
-		check(err)
+		check(cliError{err: err, errMsg: "Called by: downloadFile"})
 	}
 
 	fmt.Printf("Writing file: %s\n", readPath)
 	fileAsString := file[3]
 
 	err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
-	check(err)
+	check(cliError{err: err, errMsg: "Called by: downloadFile"})
 	return nil
 }
 
@@ -137,7 +160,7 @@ func download(files, dirs []string, readPath, writePath string) error {
 
 	//create dir if does not exist
 	err := os.MkdirAll(writePath, 0755)
-	check(err)
+	check(cliError{err: err, errMsg: "Called by: download"})
 
 	for _, val := range files {
 		fileWPath := writePath + val
@@ -155,9 +178,10 @@ func download(files, dirs []string, readPath, writePath string) error {
 		//************ REMOVE ***************************************************** REMOVE*/
 		files, dirs = parseDir(dirRPath)
 
-		download(files, dirs, dirRPath, dirWPath)
-
+		wg.Add(1)
+		go download(files, dirs, dirRPath, dirWPath)
 	}
+	wg.Done()
 
 	return nil
 }
@@ -200,9 +224,12 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 }
 
 // error check function
-func check(e error) {
-	if e != nil {
-		fmt.Println("\nError: ", e)
+func check(e cliError) {
+	if e.err != nil {
+		fmt.Println("\nError: ", e.err)
+		if e.errMsg != "" {
+			fmt.Println("Message: ", e.errMsg)
+		}
 		os.Exit(1)
 	}
 }
