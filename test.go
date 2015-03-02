@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -20,7 +21,6 @@ type cliError struct {
 }
 
 var (
-	connection           plugin.CliConnection
 	rootWorkingDirectory string
 	appName              string
 	superConcurrent      bool
@@ -29,8 +29,9 @@ var (
 var wg sync.WaitGroup
 
 func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) {
-	connection = cliConnection
+	start := time.Now()
 
+	// makes files and directories concurrent
 	superConcurrent = true
 
 	// Ensure that we called the command download
@@ -45,7 +46,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		check(cliError{err: err, errMsg: "Called by: Run"})
 
 		appName = args[1]
-		rootWorkingDirectory = workingDir + "/" + appName + "-concurrent/"
+		rootWorkingDirectory = workingDir + "/" + appName + "-download/"
 
 		startingPath := "/"
 		if len(args) == 3 {
@@ -62,7 +63,8 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		defer fmt.Println(msg)
 
 		wg.Wait()
-		time.Sleep(1 * time.Second)
+		elapsed := time.Since(start)
+		fmt.Printf("\nDownload time: %s\n", elapsed)
 	}
 }
 
@@ -114,10 +116,9 @@ func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup)
 		check(cliError{err: err, errMsg: "Called by: downloadFile 1"})
 	}
 
-	fmt.Printf("Writing file: %s\n", readPath)
-
 	err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
 	check(cliError{err: err, errMsg: "Called by: downloadFile 2"})
+	fmt.Printf("Wrote file: %s\n", readPath)
 	return nil
 }
 
@@ -126,12 +127,6 @@ func download(files, dirs []string, readPath, writePath string) error {
 		defer wg.Done()
 	}
 
-	/*fmt.Println("ReadPath: ", readPath, "writePath: ", writePath)
-	fmt.Println("---------- Files ----------")
-	printSlice(files)
-	fmt.Println("------- Directories -------")
-	printSlice(dirs)*/
-
 	//create dir if does not exist
 	err := os.MkdirAll(writePath, 0755)
 	check(cliError{err: err, errMsg: "Called by: download"})
@@ -139,6 +134,7 @@ func download(files, dirs []string, readPath, writePath string) error {
 	for _, val := range files {
 		fileWPath := writePath + val
 		fileRPath := readPath + val
+
 		wg.Add(1)
 		go downloadFile(fileRPath, fileWPath, &wg)
 	}
@@ -217,7 +213,7 @@ func printOutput(outs []byte) {
 }
 
 func main() {
-
+	runtime.GOMAXPROCS(100)
 	plugin.Start(new(downloadPlugin))
 
 }

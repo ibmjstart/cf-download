@@ -6,53 +6,33 @@ import (
 	"github.com/mgutz/ansi"
 	"io/ioutil"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 )
 
-/*
-*	This is the struct implementing the interface defined by the core CLI. It can
-*	be found at  "github.com/cloudfoundry/cli/plugin/plugin.go"
-*
- */
 type downloadPlugin struct{}
-
-type file struct {
-	writePath, content string
-}
 
 type cliError struct {
 	err    error
 	errMsg string
 }
 
-/*
-*	This function must be implemented by any plugin because it is part of the
-*	plugin interface defined by the core CLI.
-*
-*	Run(....) is the entry point when the core CLI is invoking a command defined
-*	by a plugin. The first parameter, plugin.CliConnection, is a struct that can
-*	be used to invoke cli commands. The second paramter, args, is a slice of
-*	strings. args[0] will be the name of the command, and will be followed by
-*	any additional arguments a cli user typed in.
-*
-*	Any error handling should be handled with the plugin itself (this means printing
-*	user facing errors). The CLI will exit 0 if the plugin exits 0 and will exit
-*	1 should the plugin exits nonzero.
- */
-
 var (
-	connection           plugin.CliConnection
 	rootWorkingDirectory string
 	appName              string
+	superConcurrent      bool
 )
 
-var master = make(chan string)
 var wg sync.WaitGroup
 
 func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) {
-	connection = cliConnection
+	start := time.Now()
+
+	// makes files and directories concurrent
+	superConcurrent = true
 
 	// Ensure that we called the command download
 	if args[0] == "download" {
@@ -76,44 +56,35 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			}
 		}
 
-		files, dirs := parseDir("/app/public/css/")
-
-		fmt.Println("Starting file download!")
+		files, dirs := execParseDir(startingPath)
 		wg.Add(1)
-		go download(files, dirs, "/app/public/css/", rootWorkingDirectory)
-		files, dirs = parseDir("/app/public/css/")
-		wg.Add(1)
-		go download(files, dirs, "/app/public/images/", rootWorkingDirectory)
-		files, dirs = parseDir("/app/public/images/")
-		wg.Add(1)
-		go download(files, dirs, "/app/public/js/", rootWorkingDirectory)
-		files, dirs = parseDir("/app/public/js/")
-		/*
-			go download(files, dirs, startingPath, rootWorkingDirectory)
-			msg := ansi.Color("File Successfully Downloaded!", "green+b")
-			defer fmt.Println(msg)
-		*/
+		go download(files, dirs, startingPath, rootWorkingDirectory)
+		msg := ansi.Color(appName+" Successfully Downloaded!", "green+b")
+		defer fmt.Println(msg)
 
 		wg.Wait()
-		fmt.Println("EXITING!!!!")
-		time.Sleep(2 * time.Second)
+		elapsed := time.Since(start)
+		fmt.Printf("\nDownload time: %s\n", elapsed)
 	}
 }
 
-func parseDir(readPath string) ([]string, []string) {
-	fmt.Println("\ncf files", appName, readPath)
-	dirSlice, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath)
+func execParseDir(readPath string) ([]string, []string) {
+	cmd := exec.Command("cf", "files", appName, readPath)
+
+	output, err := cmd.CombinedOutput()
+
+	dirSlice := strings.SplitAfterN(string(output), "\n", 3)
 	if strings.Contains(dirSlice[1], "not found") {
 		errmsg := ansi.Color("Error: "+appName+" app not found (check space and org)", "red+b")
 		fmt.Println(errmsg)
 	}
-	dir := dirSlice[3]
+
+	dir := dirSlice[2]
 
 	if strings.Contains(dir, "No files found") {
 		return nil, nil
 	} else {
-		printSlice(dirSlice)
-		check(cliError{err: err, errMsg: "Called by: parseDir [cf files " + appName + " " + readPath + "]"})
+		check(cliError{err: err, errMsg: "Called by: ExecParseDir [cf files " + appName + " " + readPath + "]"})
 	}
 
 	filesSlice := strings.Fields(dir)
@@ -129,34 +100,32 @@ func parseDir(readPath string) ([]string, []string) {
 	return files, dirs
 }
 
-func downloadFile(readPath, writePath string) error {
-	fmt.Println("\ncf files", appName, readPath)
+func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup) error {
+	defer fileDownloadGroup.Done()
+	//fmt.Println("\ncf files", appName, readPath)
 
-	file, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath)
-
+	cmd := exec.Command("cf", "files", appName, readPath)
+	output, err := cmd.CombinedOutput()
+	file := strings.SplitAfterN(string(output), "\n", 3)
+	fileAsString := file[2]
 	if strings.Contains(file[2], "status code") {
-		errmsg := ansi.Color("Server Error: "+readPath+"not downloaded", "red")
-		fmt.Println(errmsg)
+		errormsg := ansi.Color("Server Error: '"+readPath+"' not downloaded", "red")
+		fmt.Println(errormsg)
 		return nil
 	} else {
-		check(cliError{err: err, errMsg: "Called by: downloadFile"})
+		check(cliError{err: err, errMsg: "Called by: downloadFile 1"})
 	}
 
-	fmt.Printf("Writing file: %s\n", readPath)
-	fileAsString := file[3]
-
 	err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
-	check(cliError{err: err, errMsg: "Called by: downloadFile"})
+	check(cliError{err: err, errMsg: "Called by: downloadFile 2"})
+	fmt.Printf("Wrote file: %s\n", readPath)
 	return nil
 }
 
 func download(files, dirs []string, readPath, writePath string) error {
-
-	fmt.Println("ReadPath: ", readPath, "writePath: ", writePath)
-	fmt.Println("---------- Files ----------")
-	printSlice(files)
-	fmt.Println("------- Directories -------")
-	printSlice(dirs)
+	if superConcurrent {
+		defer wg.Done()
+	}
 
 	//create dir if does not exist
 	err := os.MkdirAll(writePath, 0755)
@@ -165,41 +134,32 @@ func download(files, dirs []string, readPath, writePath string) error {
 	for _, val := range files {
 		fileWPath := writePath + val
 		fileRPath := readPath + val
-		downloadFile(fileRPath, fileWPath)
+
+		wg.Add(1)
+		go downloadFile(fileRPath, fileWPath, &wg)
 	}
 
 	for _, val := range dirs {
 		dirWPath := writePath + val
 		dirRPath := readPath + val
+		err := os.MkdirAll(dirWPath, 0755)
+		check(cliError{err: err, errMsg: "Called by: download"})
 		/*//************ REMOVE ***************************************************** REMOVE
 		if strings.Contains(val, "app") {
 			continue
 		}
 		//************ REMOVE ***************************************************** REMOVE*/
-		files, dirs = parseDir(dirRPath)
-
-		wg.Add(1)
-		go download(files, dirs, dirRPath, dirWPath)
+		files, dirs = execParseDir(dirRPath)
+		if superConcurrent {
+			wg.Add(1)
+			go download(files, dirs, dirRPath, dirWPath)
+		} else {
+			download(files, dirs, dirRPath, dirWPath)
+		}
 	}
-	wg.Done()
-
 	return nil
 }
 
-/*
-*	This function must be implemented as part of the	plugin interface
-*	defined by the core CLI.
-*
-*	GetMetadata() returns a PluginMetadata struct. The first field, Name,
-*	determines the name of the plugin which should generally be without spaces.
-*	If there are spaces in the name a user will need to properly quote the name
-*	during uninstall otherwise the name will be treated as seperate arguments.
-*	The second value is a slice of Command structs. Our slice only contains one
-*	Command Struct, but could contain any number of them. The first field Name
-*	defines the command `cf basic-plugin-command` once installed into the CLI. The
-*	second field, HelpText, is used by the core CLI to display help information
-*	to the user in the core commands `cf help`, `cf`, or `cf -h`.
- */
 func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
 		Name: "File Downloader",
@@ -242,22 +202,18 @@ func printSlice(slice []string) error {
 	return nil
 }
 
-/*
-* Unlike most Go programs, the `Main()` function will not be used to run all of the
-* commands provided in your plugin. Main will be used to initialize the plugin
-* process, as well as any dependencies you might require for your
-* plugin.
- */
+func printCommand(cmd *exec.Cmd) {
+	fmt.Printf("==> Executing: %s\n", strings.Join(cmd.Args, " "))
+}
+
+func printOutput(outs []byte) {
+	if len(outs) > 0 {
+		fmt.Printf("==> Output: %s\n", string(outs))
+	}
+}
+
 func main() {
-	// Any initialization for your plugin can be handled here
-	//
-	// Note: to run the plugin.Start method, we pass in a pointer to the struct
-	// implementing the interface defined at "github.com/cloudfoundry/cli/plugin/plugin.go"
-	//
-	// Note: The plugin's main() method is invoked at install time to collect
-	// metadata. The plugin will exit 0 and the Run([]string) method will not be
-	// invoked.
+	runtime.GOMAXPROCS(100)
 	plugin.Start(new(downloadPlugin))
-	// Plugin code should be written in the Run([]string) method,
-	// ensuring the plugin environment is bootstrapped.
+
 }
