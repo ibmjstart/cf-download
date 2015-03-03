@@ -24,6 +24,7 @@ var (
 	connection           plugin.CliConnection
 	rootWorkingDirectory string
 	appName              string
+	instance             string
 	useExec              bool
 	failedDownloads      []string
 )
@@ -32,11 +33,15 @@ var wg sync.WaitGroup
 
 func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) {
 	start := time.Now()
+
+	// flag variables
 	maxRoutines := 200
+	useExec = true // may be deleted
+	overWrite := false
+	instance = "0"
+
 	runtime.GOMAXPROCS(maxRoutines)
 	connection = cliConnection
-	useExec = true
-	overWrite := false
 
 	// Ensure that we called the command download
 	if args[0] == "download" {
@@ -51,7 +56,20 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		appName = args[1]
 		rootWorkingDirectory = workingDir + "/" + appName + "-download/"
 
-		if exists(rootWorkingDirectory) && overWrite == true {
+		// check for misplaced flags
+		if strings.HasPrefix(appName, "-") || strings.HasPrefix(appName, "--") {
+			fmt.Println("\nError: App name begins with '-' or '--'. correct flag usage: 'cf download APP_NAME [--flags]'")
+			return
+		}
+
+		// ensure cf_trace is disabled
+		if os.Getenv("CF_TRACE") == "true" {
+			fmt.Println("\nError: environment variable CF_TRACE is set to true. This prevents download from succeeding.")
+			return
+		}
+
+		// prevent overwriting files
+		if exists(rootWorkingDirectory) && overWrite == false {
 			fmt.Println("\nError: destination path", rootWorkingDirectory, "already exists and is not an empty directory. delete it or use 'cf download APP_NAME -f'")
 			return
 		}
@@ -94,7 +112,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 }
 
 func parseDir(readPath string) ([]string, []string) {
-	dirSlice, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath)
+	dirSlice, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath, "-i", instance)
 	if strings.Contains(dirSlice[1], "not found") {
 		errormsg := ansi.Color("Error: "+appName+" app not found (check space and org)", "red+b")
 		fmt.Println(errormsg)
@@ -125,7 +143,7 @@ func parseDir(readPath string) ([]string, []string) {
 }
 
 func execParseDir(readPath string) ([]string, []string) {
-	cmd := exec.Command("cf", "files", appName, readPath)
+	cmd := exec.Command("cf", "files", appName, readPath, "-i", instance)
 
 	output, err := cmd.CombinedOutput()
 
@@ -160,7 +178,7 @@ func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup)
 	defer fileDownloadGroup.Done()
 	//fmt.Println("\ncf files", appName, readPath)
 
-	cmd := exec.Command("cf", "files", appName, readPath)
+	cmd := exec.Command("cf", "files", appName, readPath, "-i", instance)
 	output, err := cmd.CombinedOutput()
 	file := strings.SplitAfterN(string(output), "\n", 3)
 	fileAsString := file[2]
@@ -228,7 +246,7 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 				// UsageDetails is optional
 				// It is used to show help of usage of each command
 				UsageDetails: plugin.Usage{
-					Usage: "download\n   cf download",
+					Usage: "cf download APP_NAME [PATH] [--flags]",
 				},
 			},
 		},
