@@ -26,7 +26,9 @@ var (
 	appName              string
 	instance             string
 	useExec              bool
+	verbose              bool
 	failedDownloads      []string
+	filesDownloaded      int
 )
 
 var wg sync.WaitGroup
@@ -39,6 +41,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	useExec = true // may be deleted
 	overWrite := false
 	instance = "0"
+	verbose = false
 
 	runtime.GOMAXPROCS(maxRoutines)
 	connection = cliConnection
@@ -89,10 +92,24 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			files, dirs = parseDir(startingPath)
 		}
 
+		fmt.Printf("Files completed: %d", filesDownloaded)
+
 		wg.Add(1)
 		download(files, dirs, startingPath, rootWorkingDirectory)
 
+		quit := make(chan int)
+		if verbose == false {
+			go consoleWriter(quit)
+		}
+
+		// Wait for download goRoutines
 		wg.Wait()
+
+		// stop console writer
+		if verbose == false {
+			quit <- 0
+		}
+
 		if len(failedDownloads) == 1 {
 			fmt.Println("")
 			fmt.Println(len(failedDownloads), "file was not downloaded (inaccessible or corrupt):")
@@ -108,6 +125,18 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 		msg := ansi.Color(appName+" Successfully Downloaded!", "green+b")
 		fmt.Println(msg)
+	}
+}
+
+func consoleWriter(quit chan int) {
+	for {
+		select {
+		case <-quit:
+			return
+		default:
+			fmt.Printf("\rFiles completed: %d ", filesDownloaded)
+			time.Sleep(500 * time.Millisecond)
+		}
 	}
 }
 
@@ -176,7 +205,6 @@ func execParseDir(readPath string) ([]string, []string) {
 
 func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup) error {
 	defer fileDownloadGroup.Done()
-	//fmt.Println("\ncf files", appName, readPath)
 
 	cmd := exec.Command("cf", "files", appName, readPath, "-i", instance)
 	output, err := cmd.CombinedOutput()
@@ -193,7 +221,12 @@ func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup)
 
 	err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
 	check(cliError{err: err, errMsg: "Called by: downloadFile 2"})
-	fmt.Printf("Wrote file: %s\n", readPath)
+	if verbose {
+		fmt.Printf("Wrote file: %s\n", readPath)
+	} else {
+		filesDownloaded++
+	}
+
 	return nil
 }
 

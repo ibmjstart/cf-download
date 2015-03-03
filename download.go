@@ -36,9 +36,9 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 	// flag variables
 	maxRoutines := 200
-	useExec = true // may be deleted
 	overWrite := false
 	instance = "0"
+	useExec = true // may be deleted
 
 	runtime.GOMAXPROCS(maxRoutines)
 	connection = cliConnection
@@ -193,6 +193,7 @@ func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup)
 
 	err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
 	check(cliError{err: err, errMsg: "Called by: downloadFile 2"})
+
 	fmt.Printf("Wrote file: %s\n", readPath)
 	return nil
 }
