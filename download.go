@@ -26,7 +26,9 @@ var (
 	appName              string
 	instance             string
 	useExec              bool
+	verbose              bool
 	failedDownloads      []string
+	filesDownloaded      int
 )
 
 var wg sync.WaitGroup
@@ -36,9 +38,10 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 	// flag variables
 	maxRoutines := 200
-	overWrite := false
-	instance = "0"
 	useExec = true // may be deleted
+	overWrite := true
+	instance = "0"
+	verbose = false
 
 	runtime.GOMAXPROCS(maxRoutines)
 	connection = cliConnection
@@ -82,17 +85,26 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			}
 		}
 
-		var files, dirs []string
-		if useExec {
-			files, dirs = execParseDir(startingPath)
-		} else {
-			files, dirs = parseDir(startingPath)
-		}
+		files, dirs := execParseDir(startingPath)
+
+		fmt.Printf("Files completed: %d", filesDownloaded)
 
 		wg.Add(1)
 		download(files, dirs, startingPath, rootWorkingDirectory)
 
+		quit := make(chan int)
+		if verbose == false {
+			go consoleWriter(quit)
+		}
+
+		// Wait for download goRoutines
 		wg.Wait()
+
+		// stop console writer
+		if verbose == false {
+			quit <- 0
+		}
+
 		if len(failedDownloads) == 1 {
 			fmt.Println("")
 			fmt.Println(len(failedDownloads), "file was not downloaded (inaccessible or corrupt):")
@@ -111,42 +123,32 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	}
 }
 
-func parseDir(readPath string) ([]string, []string) {
-	dirSlice, err := connection.CliCommandWithoutTerminalOutput("files", appName, readPath, "-i", instance)
-	if strings.Contains(dirSlice[1], "not found") {
-		errormsg := ansi.Color("Error: "+appName+" app not found (check space and org)", "red+b")
-		fmt.Println(errormsg)
-	}
-	//printSlice(dir)
-	dir := dirSlice[3]
-
-	if strings.Contains(dir, "No files found") {
-		return nil, nil
-	} else {
-		if err != nil {
-			printSlice(dirSlice)
-			check(cliError{err: err, errMsg: "Called by: ParseDir [cf files " + appName + " " + readPath + "]"})
+func consoleWriter(quit chan int) {
+	count := 0
+	for {
+		select {
+		case <-quit:
+			return
+		default:
+			switch count = (count + 1) % 4; count {
+			case 0:
+				fmt.Printf("\rFiles completed: %d \\ ", filesDownloaded)
+			case 1:
+				fmt.Printf("\rFiles completed: %d | ", filesDownloaded)
+			case 2:
+				fmt.Printf("\rFiles completed: %d / ", filesDownloaded)
+			case 3:
+				fmt.Printf("\rFiles completed: %d --", filesDownloaded)
+			}
+			//fmt.Printf("\rFiles completed: %d ", filesDownloaded)
+			time.Sleep(350 * time.Millisecond)
 		}
 	}
-
-	filesSlice := strings.Fields(dir)
-	var files, dirs []string
-	for i := 0; i < len(filesSlice); i += 2 {
-		if strings.HasSuffix(filesSlice[i], "/") {
-			dirs = append(dirs, filesSlice[i])
-		} else {
-			files = append(files, filesSlice[i])
-		}
-
-	}
-	return files, dirs
 }
 
 func execParseDir(readPath string) ([]string, []string) {
 	cmd := exec.Command("cf", "files", appName, readPath, "-i", instance)
-
 	output, err := cmd.CombinedOutput()
-
 	dirSlice := strings.SplitAfterN(string(output), "\n", 3)
 	if strings.Contains(dirSlice[1], "not found") {
 		errmsg := ansi.Color("Error: "+appName+" app not found (check space and org)", "red+b")
@@ -154,6 +156,11 @@ func execParseDir(readPath string) ([]string, []string) {
 	}
 
 	dir := dirSlice[2]
+	if strings.Contains(dir, "error code: 190001") {
+		errmsg := ansi.Color("App not found, possibly not yet running", "red+b")
+		fmt.Println(errmsg)
+		check(cliError{err: err, errMsg: "App not found"})
+	}
 
 	if strings.Contains(dir, "No files found") {
 		return nil, nil
@@ -176,14 +183,14 @@ func execParseDir(readPath string) ([]string, []string) {
 
 func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup) error {
 	defer fileDownloadGroup.Done()
-	//fmt.Println("\ncf files", appName, readPath)
 
 	cmd := exec.Command("cf", "files", appName, readPath, "-i", instance)
 	output, err := cmd.CombinedOutput()
 	file := strings.SplitAfterN(string(output), "\n", 3)
+
 	fileAsString := file[2]
-	if strings.Contains(file[1], "FAILED") && strings.Contains(file[2], "status code: 404") {
-		errormsg := ansi.Color("Server Error: '"+readPath+"' not downloaded", "red")
+	if strings.Contains(file[1], "FAILED") {
+		errormsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "red")
 		failedDownloads = append(failedDownloads, errormsg)
 		fmt.Println(errormsg)
 		return nil
@@ -193,8 +200,12 @@ func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup)
 
 	err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
 	check(cliError{err: err, errMsg: "Called by: downloadFile 2"})
+	if verbose {
+		fmt.Printf("Wrote file: %s\n", readPath)
+	} else {
+		filesDownloaded++
+	}
 
-	fmt.Printf("Wrote file: %s\n", readPath)
 	return nil
 }
 
@@ -219,11 +230,7 @@ func download(files, dirs []string, readPath, writePath string) error {
 		err := os.MkdirAll(dirWPath, 0755)
 		check(cliError{err: err, errMsg: "Called by: download"})
 
-		if useExec {
-			files, dirs = execParseDir(dirRPath)
-		} else {
-			files, dirs = parseDir(dirRPath)
-		}
+		files, dirs = execParseDir(dirRPath)
 
 		wg.Add(1)
 		go download(files, dirs, dirRPath, dirWPath)
@@ -236,7 +243,7 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 		Name: "File Downloader",
 		Version: plugin.VersionType{
 			Major: 0,
-			Minor: 0,
+			Minor: 1,
 			Build: 1,
 		},
 		Commands: []plugin.Command{
@@ -248,6 +255,12 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 				// It is used to show help of usage of each command
 				UsageDetails: plugin.Usage{
 					Usage: "cf download APP_NAME [PATH] [--flags]",
+					Options: map[string]string{
+						"force":    "force overwrite",
+						"verbose":  "verbose",
+						"omit":     "[PAomit directory or file",
+						"routines": "max number of concurrent subroutines",
+					},
 				},
 			},
 		},
