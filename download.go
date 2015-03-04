@@ -66,9 +66,13 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	// Ensure that we called the command download
 	if args[0] == "download" {
 
-		// check for
+		// check for missing app name
 		if len(args) < 2 {
+			cmd := exec.Command("cf", "help", "download")
+			output, err := cmd.CombinedOutput()
+			check(cliError{err: err, errMsg: ""})
 			fmt.Println("\nError: Missing App Name")
+			fmt.Printf("%s", output)
 			os.Exit(1)
 		}
 
@@ -247,17 +251,16 @@ func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup)
 		// check for other errors
 		check(cliError{err: err, errMsg: "Called by: downloadFile 1"})
 	}
-
-	// write downloaded file to writePath
-	err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
-	check(cliError{err: err, errMsg: "Called by: downloadFile 2"})
 	if verbose {
-		fmt.Printf("Wrote file: %s\n", readPath)
+		fmt.Printf("Writing file: %s\n", readPath)
 	} else {
 		// increment download counter for commandline display
 		// see consoleWriter()
 		filesDownloaded++
 	}
+	// write downloaded file to writePath
+	err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
+	check(cliError{err: err, errMsg: "Called by: downloadFile 2"})
 
 	return nil
 }
