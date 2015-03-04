@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+    "flag"
+    "strconv"
 )
 
 /*
@@ -37,6 +39,35 @@ var (
 // global wait group for all download threads
 var wg sync.WaitGroup
 
+
+
+func getFilterList(omitString string) []string {
+    var filterList []string                            // filtered list to be returned 
+    
+    // Add .cfignore files to filterList
+    content, err := ioutil.ReadFile(".cfignore")
+    if err != nil {
+        fmt.Println(err)
+    } else {
+        lines := strings.Split(string(content), "\n")
+        filterList = append(filterList,lines[0:]...)
+        if len(filterList) > 0 && filterList[len(filterList)-1] == "" { 
+            filterList = filterList[:len(filterList)-1]
+        }
+    }
+    
+    if omitString != "" {
+        filterList = append(filterList, omitString)                  // add -omit param to filterList
+    }
+    
+    // Remove any trailing forward slashes in the filterList[ex: app/ becomes app]
+    for i, _ := range filterList {
+        filterList[i] = strings.TrimSuffix(filterList[i], "/")
+        filterList[i] = "/"+filterList[i]
+    }
+    
+    return filterList
+}
 /*
 *	This function must be implemented by any plugin because it is part of the
 *	plugin interface defined by the core CLI.
@@ -54,38 +85,88 @@ var wg sync.WaitGroup
 func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) {
 	// start time for download timer
 	start := time.Now()
+    proceed := true
+	
+    if len(args) < 2 {
+			fmt.Println("\nError: Missing App Name")
+			proceed = false
+    }
+    
+    
+    
+    // Create flag
+    omitp := flag.String("omit", "", "--omit path/to/some/file")
+    overWritep := flag.Bool("overwrite", false, "--overwrite")
+    maxRoutinesp := flag.Int("routines", 200, "--routines [numOfRoutines]")
+    instancep := flag.Int("i", 0, "-i [instanceNum]")
+    verbosep := flag.Bool("verbose", false, "--verbose")
+    
+    
+    copyOfArgs := make([]string, len(args))         // need to copy args[] for later as they will be overwritten
+    
+    for i := 0; i < len(args); i++ {
+           copyOfArgs[i] = args[i]
+    }
+    
+    os.Args = append(os.Args[:1], args[2:]...)  // flag package parses os.Args
+    appName = copyOfArgs[1]
+    
+    
+    
+    // check for misplaced flags
+    if strings.HasPrefix(appName, "-") || strings.HasPrefix(appName, "--") {
+        fmt.Println("\nError: App name begins with '-' or '--'. correct flag usage: 'cf download APP_NAME [--flags]'")
+        proceed = false
+    }
+    
+    
+    // make sure the flags have valid input
+    for i := 2; i < len(copyOfArgs); i++ {
+        if len(args) > 2 && !strings.HasPrefix(copyOfArgs[2],"-") {    // has specified app dir/file
 
+        } else {                                                       // no specified app dir/file
+
+            temp := strings.TrimPrefix(copyOfArgs[i],"-")
+            temp = strings.TrimPrefix(temp,"-")
+            
+            switch temp {
+			case "omit": 
+			//	fmt.Printf("omit not recognized")
+			case "verbose":
+			//	fmt.Printf("verbose not recognized")
+			case "overwrite":
+			//	fmt.Printf("overwrite not recognized")
+			case "i":
+			//	fmt.Printf("i not recognized")
+            case "routines":
+          //      fmt.Printf("routines not recognized")
+            default:
+             //   fmt.Printf("Argument not recognized")
+			}
+        }
+        
+    }
+    
+    // Parse flags
+    flag.Parse()
+    
 	// flag variables
-	maxRoutines := 200
-	overWrite := false
-	instance = "0"
-	verbose = false
+	maxRoutines := *maxRoutinesp
+	overWrite := *overWritep
+	instance = strconv.Itoa(*instancep)
+	verbose = *verbosep
 
 	runtime.GOMAXPROCS(maxRoutines)
 
-	// Ensure that we called the command download
-	if args[0] == "download" {
-
-		// check for missing app name
-		if len(args) < 2 {
-			cmd := exec.Command("cf", "help", "download")
-			output, err := cmd.CombinedOutput()
-			check(cliError{err: err, errMsg: ""})
-			fmt.Println("\nError: Missing App Name")
-			fmt.Printf("%s", output)
-			os.Exit(1)
-		}
-
+	
+    if proceed == false {
+        os.Exit(1)   
+    } else {
+        filterList := getFilterList(*omitp)             // get list of things to not download
 		workingDir, err := os.Getwd()
 		check(cliError{err: err, errMsg: "Called by: Run"})
-		appName = args[1]
 		rootWorkingDirectory = workingDir + "/" + appName + "-download/"
 
-		// check for misplaced flags
-		if strings.HasPrefix(appName, "-") || strings.HasPrefix(appName, "--") {
-			fmt.Println("\nError: App name begins with '-' or '--'. correct flag usage: 'cf download APP_NAME [--flags]'")
-			return
-		}
 
 		// ensure cf_trace is disabled, otherwise parsing breaks
 		if os.Getenv("CF_TRACE") == "true" {
@@ -95,17 +176,18 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 		// prevent overwriting files
 		if exists(rootWorkingDirectory) && overWrite == false {
-			fmt.Println("\nError: destination path", rootWorkingDirectory, "already exists and is not an empty directory. delete it or use 'cf download APP_NAME --overwrite'")
+			fmt.Println("\nError: destination path", rootWorkingDirectory, "already exists and is not an empty directory. Delete it or use 'cf download APP_NAME --overwrite'")
 			return
 		}
 
 		// append path if provided as arguement
 		startingPath := "/"
-		if len(args) == 3 {
-			startingPath = args[2]
+		if len(args) > 2 && !strings.HasPrefix(copyOfArgs[2],"-"){
+			startingPath = copyOfArgs[2]
 			if !strings.HasSuffix(startingPath, "/") {
 				startingPath += "/"
 			}
+            rootWorkingDirectory += startingPath
 		}
 
 		// parse the directory
@@ -122,7 +204,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 		// Start the download
 		wg.Add(1)
-		download(files, dirs, startingPath, rootWorkingDirectory)
+		download(files, dirs, startingPath, rootWorkingDirectory, filterList)
 
 		// Wait for download goRoutines
 		wg.Wait()
@@ -265,6 +347,19 @@ func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup)
 	return nil
 }
 
+func checkToFilter(appPath string, filterList []string) bool {
+    appPath = strings.TrimSuffix(appPath, "/")
+    comparePath1 := strings.TrimPrefix(appPath, rootWorkingDirectory)
+    
+    for _, item := range filterList {
+       if comparePath1 == item {
+           return true
+       }
+    }
+    
+    return false              
+}
+
 /*
 *	given file and directory names, download() will download the files from
 * 	'readPath' and write them to disk on the 'writepath'.
@@ -272,7 +367,7 @@ func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup)
 * 	Each call runs on a seperate go routine and and calls a go routine for every
 * 	file download.
  */
-func download(files, dirs []string, readPath, writePath string) error {
+func download(files, dirs []string, readPath, writePath string, filterList []string) error {
 	defer wg.Done()
 
 	//create dir if does not exist
@@ -283,7 +378,11 @@ func download(files, dirs []string, readPath, writePath string) error {
 	for _, val := range files {
 		fileWPath := writePath + val
 		fileRPath := readPath + val
-
+        
+        if checkToFilter(fileRPath,filterList) {
+			continue
+		}
+        
 		wg.Add(1)
 		go downloadFile(fileRPath, fileWPath, &wg)
 	}
@@ -292,13 +391,18 @@ func download(files, dirs []string, readPath, writePath string) error {
 	for _, val := range dirs {
 		dirWPath := writePath + val
 		dirRPath := readPath + val
+        
+        if checkToFilter(dirRPath,filterList) {
+			continue
+		}
+        
 		err := os.MkdirAll(dirWPath, 0755)
 		check(cliError{err: err, errMsg: "Called by: download"})
 
 		files, dirs = execParseDir(dirRPath)
 
 		wg.Add(1)
-		go download(files, dirs, dirRPath, dirWPath)
+		go download(files, dirs, dirRPath, dirWPath, filterList)
 	}
 	return nil
 }
