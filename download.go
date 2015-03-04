@@ -13,42 +13,60 @@ import (
 	"time"
 )
 
+/*
+*	This is the struct implementing the interface defined by the core CLI. It can
+*	be found at  "github.com/cloudfoundry/cli/plugin/plugin.go"
+ */
 type downloadPlugin struct{}
 
+// error struct that allows appending error messages
 type cliError struct {
 	err    error
 	errMsg string
 }
 
 var (
-	connection           plugin.CliConnection
 	rootWorkingDirectory string
 	appName              string
 	instance             string
-	useExec              bool
 	verbose              bool
 	failedDownloads      []string
 	filesDownloaded      int
 )
 
+// global wait group for all download threads
 var wg sync.WaitGroup
 
+/*
+*	This function must be implemented by any plugin because it is part of the
+*	plugin interface defined by the core CLI.
+*
+*	Run(....) is the entry point when the core CLI is invoking a command defined
+*	by a plugin. The first parameter, plugin.CliConnection, is a struct that can
+*	be used to invoke cli commands. The second paramter, args, is a slice of
+*	strings. args[0] will be the name of the command, and will be followed by
+*	any additional arguments a cli user typed in.
+*
+*	Any error handling should be handled with the plugin itself (this means printing
+*	user facing errors). The CLI will exit 0 if the plugin exits 0 and will exit
+*	1 should the plugin exits nonzero.
+ */
 func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) {
+	// start time for download timer
 	start := time.Now()
 
 	// flag variables
 	maxRoutines := 200
-	useExec = true // may be deleted
-	overWrite := true
+	overWrite := false
 	instance = "0"
 	verbose = false
 
 	runtime.GOMAXPROCS(maxRoutines)
-	connection = cliConnection
 
 	// Ensure that we called the command download
 	if args[0] == "download" {
 
+		// check for
 		if len(args) < 2 {
 			fmt.Println("\nError: Missing App Name")
 			os.Exit(1)
@@ -65,7 +83,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			return
 		}
 
-		// ensure cf_trace is disabled
+		// ensure cf_trace is disabled, otherwise parsing breaks
 		if os.Getenv("CF_TRACE") == "true" {
 			fmt.Println("\nError: environment variable CF_TRACE is set to true. This prevents download from succeeding.")
 			return
@@ -73,10 +91,11 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 		// prevent overwriting files
 		if exists(rootWorkingDirectory) && overWrite == false {
-			fmt.Println("\nError: destination path", rootWorkingDirectory, "already exists and is not an empty directory. delete it or use 'cf download APP_NAME -f'")
+			fmt.Println("\nError: destination path", rootWorkingDirectory, "already exists and is not an empty directory. delete it or use 'cf download APP_NAME --overwrite'")
 			return
 		}
 
+		// append path if provided as arguement
 		startingPath := "/"
 		if len(args) == 3 {
 			startingPath = args[2]
@@ -85,6 +104,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			}
 		}
 
+		// parse the directory
 		files, dirs := execParseDir(startingPath)
 
 		fmt.Printf("Files completed: %d", filesDownloaded)
@@ -92,7 +112,9 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		wg.Add(1)
 		download(files, dirs, startingPath, rootWorkingDirectory)
 
+		// stop consoleWriter
 		quit := make(chan int)
+		// disable consoleWriter if verbose
 		if verbose == false {
 			go consoleWriter(quit)
 		}
@@ -105,6 +127,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			quit <- 0
 		}
 
+		// let user know if any files were inaccessible
 		if len(failedDownloads) == 1 {
 			fmt.Println("")
 			fmt.Println(len(failedDownloads), "file was not downloaded (inaccessible or corrupt):")
@@ -115,6 +138,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			printSlice(failedDownloads)
 		}
 
+		// display runtime
 		elapsed := time.Since(start)
 		fmt.Printf("\nDownload time: %s\n", elapsed)
 
@@ -123,6 +147,10 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	}
 }
 
+/*
+*	consoleWriter prints the current number of files downloaded. It is polled every 350 milleseconds
+* 	disabled if using verbose flag.
+ */
 func consoleWriter(quit chan int) {
 	count := 0
 	for {
@@ -140,21 +168,30 @@ func consoleWriter(quit chan int) {
 			case 3:
 				fmt.Printf("\rFiles completed: %d --", filesDownloaded)
 			}
-			//fmt.Printf("\rFiles completed: %d ", filesDownloaded)
 			time.Sleep(350 * time.Millisecond)
 		}
 	}
 }
 
+/*
+*	execParseDir() uses os/exec to shell out commands to cf files with the given readPath. The returned
+*	text contains file and directory structure which is then parsed into two slices, dirs and files. dirs
+*	contains the names of directories in readPath, files contians the file names. dirs and files are returned
+* 	to be downloaded by download() and downloadFile() respectively.
+ */
 func execParseDir(readPath string) ([]string, []string) {
+	// make the cf files call using exec
 	cmd := exec.Command("cf", "files", appName, readPath, "-i", instance)
 	output, err := cmd.CombinedOutput()
 	dirSlice := strings.SplitAfterN(string(output), "\n", 3)
+
+	// check for invalid or missing app
 	if strings.Contains(dirSlice[1], "not found") {
 		errmsg := ansi.Color("Error: "+appName+" app not found (check space and org)", "red+b")
 		fmt.Println(errmsg)
 	}
 
+	// this usually gets called when an app is not running and you attempt to download it.
 	dir := dirSlice[2]
 	if strings.Contains(dir, "error code: 190001") {
 		errmsg := ansi.Color("App not found, possibly not yet running", "red+b")
@@ -162,12 +199,14 @@ func execParseDir(readPath string) ([]string, []string) {
 		check(cliError{err: err, errMsg: "App not found"})
 	}
 
+	// handle an empty directory
 	if strings.Contains(dir, "No files found") {
 		return nil, nil
 	} else {
 		check(cliError{err: err, errMsg: "Called by: ExecParseDir [cf files " + appName + " " + readPath + "]"})
 	}
 
+	// parse the returned output into files and dirs slices
 	filesSlice := strings.Fields(dir)
 	var files, dirs []string
 	for i := 0; i < len(filesSlice); i += 2 {
@@ -181,13 +220,22 @@ func execParseDir(readPath string) ([]string, []string) {
 	return files, dirs
 }
 
+/*
+*	downloadFile() takes a 'readPath' which corresponds to a file in the cf app. The file is
+*	downloaded using the os/exec library to call cf files with the given readPath. The output is
+*	written to a file at writePath.
+ */
 func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup) error {
 	defer fileDownloadGroup.Done()
 
+	// call cf files using os/exec
 	cmd := exec.Command("cf", "files", appName, readPath, "-i", instance)
 	output, err := cmd.CombinedOutput()
 	file := strings.SplitAfterN(string(output), "\n", 3)
 
+	// check for invalid file error.
+	// some files are inaccesible from the cf files (reasons unknown) this is rare but we need to
+	// alert users if it occurs
 	fileAsString := file[2]
 	if strings.Contains(file[1], "FAILED") {
 		errormsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "red")
@@ -195,20 +243,31 @@ func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup)
 		fmt.Println(errormsg)
 		return nil
 	} else {
+		// check for other errors
 		check(cliError{err: err, errMsg: "Called by: downloadFile 1"})
 	}
 
+	// write downloaded file to writePath
 	err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
 	check(cliError{err: err, errMsg: "Called by: downloadFile 2"})
 	if verbose {
 		fmt.Printf("Wrote file: %s\n", readPath)
 	} else {
+		// increment download counter for commandline display
+		// see consoleWriter()
 		filesDownloaded++
 	}
 
 	return nil
 }
 
+/*
+*	given file and directory names, download() will download the files from
+* 	'readPath' and write them to disk on the 'writepath'.
+* 	the function calls it's self recursively for each directory as it travels down the tree.
+* 	Each call runs on a seperate go routine and and calls a go routine for every
+* 	file download.
+ */
 func download(files, dirs []string, readPath, writePath string) error {
 	defer wg.Done()
 
@@ -216,6 +275,7 @@ func download(files, dirs []string, readPath, writePath string) error {
 	err := os.MkdirAll(writePath, 0755)
 	check(cliError{err: err, errMsg: "Called by: download"})
 
+	// download each file
 	for _, val := range files {
 		fileWPath := writePath + val
 		fileRPath := readPath + val
@@ -224,6 +284,7 @@ func download(files, dirs []string, readPath, writePath string) error {
 		go downloadFile(fileRPath, fileWPath, &wg)
 	}
 
+	// call download on every sub directory
 	for _, val := range dirs {
 		dirWPath := writePath + val
 		dirRPath := readPath + val
@@ -238,9 +299,23 @@ func download(files, dirs []string, readPath, writePath string) error {
 	return nil
 }
 
+/*
+*	This function must be implemented as part of the	plugin interface
+*	defined by the core CLI.
+*
+*	GetMetadata() returns a PluginMetadata struct. The first field, Name,
+*	determines the name of the plugin which should generally be without spaces.
+*	If there are spaces in the name a user will need to properly quote the name
+*	during uninstall otherwise the name will be treated as seperate arguments.
+*	The second value is a slice of Command structs. Our slice only contains one
+*	Command Struct, but could contain any number of them. The first field Name
+*	defines the command `cf basic-plugin-command` once installed into the CLI. The
+*	second field, HelpText, is used by the core CLI to display help information
+*	to the user in the core commands `cf help`, `cf`, or `cf -h`.
+ */
 func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
-		Name: "File Downloader",
+		Name: "download",
 		Version: plugin.VersionType{
 			Major: 0,
 			Minor: 1,
@@ -256,10 +331,11 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 				UsageDetails: plugin.Usage{
 					Usage: "cf download APP_NAME [PATH] [--flags]",
 					Options: map[string]string{
-						"force":    "force overwrite",
-						"verbose":  "verbose",
-						"omit":     "[PAomit directory or file",
-						"routines": "max number of concurrent subroutines",
+						"overwrite": "overwrite files",
+						"verbose":   "verbose",
+						"omit":      "omit directory or file",
+						"routines":  "max number of concurrent subroutines (default 200)",
+						"i":         "instance",
 					},
 				},
 			},
@@ -278,21 +354,12 @@ func check(e cliError) {
 	}
 }
 
+// prints slices in readable format
 func printSlice(slice []string) error {
 	for index, val := range slice {
 		fmt.Println(index+1, ": ", val)
 	}
 	return nil
-}
-
-func printCommand(cmd *exec.Cmd) {
-	fmt.Printf("==> Executing: %s\n", strings.Join(cmd.Args, " "))
-}
-
-func printOutput(outs []byte) {
-	if len(outs) > 0 {
-		fmt.Printf("==> Output: %s\n", string(outs))
-	}
 }
 
 // exists returns whether the given file or directory exists or not
@@ -308,7 +375,19 @@ func exists(path string) bool {
 	return false
 }
 
+/*
+* Unlike most Go programs, the `Main()` function will not be used to run all of the
+* commands provided in your plugin. Main will be used to initialize the plugin
+* process, as well as any dependencies you might require for your
+* plugin.
+ */
 func main() {
-	plugin.Start(new(downloadPlugin))
+	// Any initialization for your plugin can be handled here
 
+	// Note: The plugin's main() method is invoked at install time to collect
+	// metadata. The plugin will exit 0 and the Run([]string) method will not be
+	// invoked.
+	plugin.Start(new(downloadPlugin))
+	// Plugin code should be written in the Run([]string) method,
+	// ensuring the plugin environment is bootstrapped.
 }
