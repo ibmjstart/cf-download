@@ -1,0 +1,66 @@
+
+{
+    "repositories": [
+        {
+          "type": "composer",
+          "url": "https://packages.zendframework.com/"
+        },
+        {
+          "type": "composer",
+          "url": "http://wpackagist.org"
+        },
+        {
+          "type": "vcs",
+          "url": "git@github.com:ibmjstart/ZendService_IBMObjectStorage.git"
+        },
+        {
+          "type": "vcs",
+          "url": "git@github.com:ibmjstart/wp-bluemix-sendgrid.git"
+        },
+        {
+          "type": "vcs",
+          "url": "git@github.com:ibmjstart/wp-bluemix-objectstorage.git"
+        },
+        {
+          "type": "vcs",
+          "url": "git@github.com:ibmjstart/wp-bluemix-config.git"
+        }
+    ],
+    
+    "scripts": {
+        "pre-install-cmd" : [
+            "curl https://api.github.com/rate_limit"
+        ],
+        "post-install-cmd" : [
+            "mv vendor/ibmjstart/wp-bluemix-config/mu-plugins htdocs/wp-content/mu-plugins",
+            "mv vendor/ibmjstart/wp-bluemix-config/.user.ini htdocs",
+            "mv vendor/ibmjstart/wp-bluemix-config/wp-config.php htdocs",
+            "mv vendor htdocs/vendor"
+        ]
+        
+    },
+
+    "require": {
+        "ext-gd"                                      : "*",
+        "johnpbloch/wordpress"                        : "*",
+        "ibmjstart/wp-bluemix-sendgrid"               : "dev-master",
+        "ibmjstart/wp-bluemix-objectstorage"          : "dev-master",
+        "ibmjstart/wp-bluemix-config"                 : "dev-master",
+        "wpackagist-plugin/stops-core-theme-and-plugin-updates": "*",
+        "wpackagist-plugin/sendgrid-email-delivery-simplified": "*",
+        "wpackagist-plugin/wp-super-cache"            : "*",
+        "wpackagist-theme/twentyfourteen"             : "*",
+        "wpackagist-theme/twentythirteen"             : "*",
+        "wpackagist-theme/twentytwelve"               : "*"
+    },
+
+    "extra": {
+      "wordpress-install-dir": "htdocs",
+      "installer-paths": {
+        "htdocs/wp-content/plugins/{$name}/" : ["type:wordpress-plugin"],
+        "htdocs/wp-content/themes/{$name}/"  : ["type:wordpress-theme"]
+      }
+    },
+    "minimum-stability" : "dev",
+    "prefer-stable": true
+}

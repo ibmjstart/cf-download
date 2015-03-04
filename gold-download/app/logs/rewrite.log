@@ -1,0 +1,16 @@
+
+2015-03-02 20:04:21,455 [INFO] utils - Rewriting configuration under [/home/vcap/app/httpd/conf]
+2015-03-02 20:04:21,455 [DEBUG] utils - Rewriting [/home/vcap/app/httpd/conf/httpd.conf]
+2015-03-02 20:04:21,455 [DEBUG] utils - Rewriting [/home/vcap/app/httpd/conf/mime.types]
+2015-03-02 20:04:21,458 [DEBUG] utils - Rewriting [/home/vcap/app/httpd/conf/extra/httpd-remoteip.conf]
+2015-03-02 20:04:21,458 [DEBUG] utils - Rewriting [/home/vcap/app/httpd/conf/extra/httpd-modules.conf]
+2015-03-02 20:04:21,459 [DEBUG] utils - Rewriting [/home/vcap/app/httpd/conf/extra/httpd-php.conf]
+2015-03-02 20:04:21,459 [DEBUG] utils - Rewriting [/home/vcap/app/httpd/conf/extra/httpd-mpm.conf]
+2015-03-02 20:04:21,460 [DEBUG] utils - Rewriting [/home/vcap/app/httpd/conf/extra/httpd-directories.conf]
+2015-03-02 20:04:21,460 [DEBUG] utils - Rewriting [/home/vcap/app/httpd/conf/extra/httpd-logging.conf]
+2015-03-02 20:04:21,460 [DEBUG] utils - Rewriting [/home/vcap/app/httpd/conf/extra/httpd-mime.conf]
+2015-03-02 20:04:21,461 [DEBUG] utils - Rewriting [/home/vcap/app/httpd/conf/extra/httpd-default.conf]
+2015-03-02 20:04:21,541 [INFO] utils - Rewriting configuration under [/home/vcap/app/php/etc]
+2015-03-02 20:04:21,541 [DEBUG] utils - Rewriting [/home/vcap/app/php/etc/php-fpm.conf]
+2015-03-02 20:04:21,543 [DEBUG] utils - Rewriting [/home/vcap/app/php/etc/php.ini]
+

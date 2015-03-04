@@ -1,0 +1,13 @@
+
+2015-03-02 20:04:21,630 [INFO] utils - Loading processes from [/home/vcap/app/.procs]
+2015-03-02 20:04:21,630 [DEBUG] utils - Loaded processes [{'httpd': '$HOME/httpd/bin/apachectl -f "$HOME/httpd/conf/httpd.conf" -k start -DFOREGROUND', 'php-fpm': '$HOME/php/sbin/php-fpm -p "$HOME/php/etc" -y "$HOME/php/etc/php-fpm.conf" -c "$HOME/php/etc"', 'php-fpm-logs': 'tail -F $HOME/logs/php-fpm.log'}]
+2015-03-02 20:04:21,630 [DEBUG] process - Adding process [httpd] with cmd [$HOME/httpd/bin/apachectl -f "$HOME/httpd/conf/httpd.conf" -k start -DFOREGROUND]
+2015-03-02 20:04:21,646 [DEBUG] process - Adding process [php-fpm] with cmd [$HOME/php/sbin/php-fpm -p "$HOME/php/etc" -y "$HOME/php/etc/php-fpm.conf" -c "$HOME/php/etc"]
+2015-03-02 20:04:21,663 [DEBUG] process - Adding process [php-fpm-logs] with cmd [tail -F $HOME/logs/php-fpm.log]
+2015-03-02 20:04:21,677 [DEBUG] process - Starting [httpd]
+2015-03-02 20:04:21,678 [DEBUG] process - Starting [php-fpm]
+2015-03-02 20:04:21,679 [DEBUG] process - Starting [php-fpm-logs]
+2015-03-02 20:04:21,679 [INFO] process - Started [httpd] with pid [35]
+2015-03-02 20:04:21,679 [INFO] process - Started [php-fpm] with pid [39]
+2015-03-02 20:04:21,679 [INFO] process - Started [php-fpm-logs] with pid [41]
+

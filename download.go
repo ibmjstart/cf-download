@@ -109,15 +109,16 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 		fmt.Printf("Files completed: %d", filesDownloaded)
 
-		wg.Add(1)
-		download(files, dirs, startingPath, rootWorkingDirectory)
-
 		// stop consoleWriter
 		quit := make(chan int)
 		// disable consoleWriter if verbose
 		if verbose == false {
 			go consoleWriter(quit)
 		}
+
+		// Start the download
+		wg.Add(1)
+		download(files, dirs, startingPath, rootWorkingDirectory)
 
 		// Wait for download goRoutines
 		wg.Wait()
