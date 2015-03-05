@@ -18,10 +18,15 @@ Linux: [386](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/bi
 Usage
 
 cf download APP_NAME [PATH] [--overwrite] [--verbose] [--omit ommited_path] [--routines max_routines] [-i instance]
+
 path and flags are optional, setting a path will start the download from the specified path instead of the app root.
 Use cf help download to see options
 
 Notes:  
 Projects usually have a enormous amount of dependencies installed by package managers, we highly reccomend not downloading these dependencies. using the --omit flag you can avoid downloading these dependencies and significantly reduce download times.
+
+Limiting Resources: The download plugin is extremely concurrent and can use up a lot of cpu power. You can reduce the max number of concurrent routines with the --routines flag. Reducing the number of routines reduces the cpu load at the cost of speed.
+
+.cfignore: you can create a .cfignore file in your current directory to tell the plugin which paths should be ignored dunring the download. This helps avoid having to use a bunch of --omit flags
 
 In case the download seems to be stuck, we recommend terminating and redownloading using the verbose flag. When the download stalls you can see which files were being downloaded and could be causing the issue. 
