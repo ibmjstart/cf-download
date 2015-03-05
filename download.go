@@ -199,7 +199,9 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 		// display runtime
 		elapsed := time.Since(start)
-		fmt.Printf("\nDownload time: %s\n", elapsed)
+		elapsedString := strings.Split(elapsed.String(), ".")[0]
+		elapsedString = strings.TrimSuffix(elapsedString, ".") + "s"
+		fmt.Println("\nDownload time: " + elapsedString)
 
 		msg := ansi.Color(appName+" Successfully Downloaded!", "green+b")
 		if onWindows == true {

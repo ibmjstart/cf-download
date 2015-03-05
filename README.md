@@ -30,3 +30,5 @@ Limiting Resources: The download plugin is extremely concurrent and can use up a
 .cfignore: you can create a .cfignore file in your current directory to tell the plugin which paths should be ignored dunring the download. This helps avoid having to use a bunch of --omit flags
 
 In case the download seems to be stuck, we recommend terminating and redownloading using the verbose flag. When the download stalls you can see which files were being downloaded and could be causing the issue. 
+
+Downloading Jar files: projects containing jar files can trigger antivirus software while being downloaded. you can either temporarily disable network antivirus protection or exclude directories containing jar files.
