@@ -45,6 +45,7 @@ var (
 	verbose              bool
 	failedDownloads      []string
 	filesDownloaded      int
+	onWindows            bool
 )
 
 // global wait group for all download threads
@@ -68,6 +69,9 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	// start time for download timer
 	start := time.Now()
 	proceed := true
+
+	// disables ansi text color on windows
+	onWindows = isWindows()
 
 	if len(args) < 2 {
 		cmd := exec.Command("cf", "help", "download")
@@ -197,6 +201,9 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		fmt.Printf("\nDownload time: %s\n", elapsed)
 
 		msg := ansi.Color(appName+" Successfully Downloaded!", "green+b")
+		if onWindows == true {
+			msg = "Successfully Downloaded!"
+		}
 		fmt.Println(msg)
 	}
 }
@@ -208,7 +215,7 @@ func getFilterList(omitString string) []string {
 	// Add .cfignore files to filterList
 	content, err := ioutil.ReadFile(".cfignore")
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("[Info: ", err, "]")
 	} else {
 		lines := strings.Split(string(content), "\n")
 		filterList = append(filterList, lines[0:]...)
@@ -271,6 +278,9 @@ func execParseDir(readPath string) ([]string, []string) {
 	// check for invalid or missing app
 	if strings.Contains(dirSlice[1], "not found") {
 		errmsg := ansi.Color("Error: "+appName+" app not found (check space and org)", "red+b")
+		if onWindows == true {
+			errmsg = "Error: " + appName + " app not found (check space and org)"
+		}
 		fmt.Println(errmsg)
 	}
 
@@ -278,6 +288,9 @@ func execParseDir(readPath string) ([]string, []string) {
 	dir := dirSlice[2]
 	if strings.Contains(dir, "error code: 190001") {
 		errmsg := ansi.Color("App not found, possibly not yet running", "red+b")
+		if onWindows == true {
+			errmsg = "App not found, possibly not yet running"
+		}
 		fmt.Println(errmsg)
 		check(cliError{err: err, errMsg: "App not found"})
 	}
@@ -321,9 +334,12 @@ func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup)
 	// alert users if it occurs
 	fileAsString := file[2]
 	if strings.Contains(file[1], "FAILED") {
-		errormsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "red")
-		failedDownloads = append(failedDownloads, errormsg)
-		fmt.Println(errormsg)
+		errmsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "red")
+		if onWindows == true {
+			errmsg = " Server Error: '" + readPath + "' not downloaded"
+		}
+		failedDownloads = append(failedDownloads, errmsg)
+		fmt.Println(errmsg)
 		return nil
 	} else {
 		// check for other errors
@@ -477,6 +493,10 @@ func exists(path string) bool {
 	}
 	check(cliError{err: err, errMsg: "Called by: exists"})
 	return false
+}
+
+func isWindows() bool {
+	return os.PathSeparator == '\\' && os.PathListSeparator == ';'
 }
 
 /*
