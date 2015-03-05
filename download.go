@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -215,7 +216,7 @@ func getFilterList(omitString string) []string {
 	// Add .cfignore files to filterList
 	content, err := ioutil.ReadFile(".cfignore")
 	if err != nil {
-		fmt.Println("[Info: ", err, "]")
+		fmt.Println("[ Info: ", err, "]")
 	} else {
 		lines := strings.Split(string(content), "\n")
 		filterList = append(filterList, lines[0:]...)
@@ -305,13 +306,21 @@ func execParseDir(readPath string) ([]string, []string) {
 	// parse the returned output into files and dirs slices
 	filesSlice := strings.Fields(dir)
 	var files, dirs []string
-	for i := 0; i < len(filesSlice); i += 2 {
+	var name string
+	for i := 0; i < len(filesSlice); i++ {
 		if strings.HasSuffix(filesSlice[i], "/") {
-			dirs = append(dirs, filesSlice[i])
+			name += filesSlice[i]
+			dirs = append(dirs, name)
+			name = ""
+		} else if isDelimiter(filesSlice[i]) {
+			if len(name) > 0 {
+				name = strings.TrimSuffix(name, " ")
+				files = append(files, name)
+			}
+			name = ""
 		} else {
-			files = append(files, filesSlice[i])
+			name += filesSlice[i] + " "
 		}
-
 	}
 	return files, dirs
 }
@@ -497,6 +506,14 @@ func exists(path string) bool {
 
 func isWindows() bool {
 	return os.PathSeparator == '\\' && os.PathListSeparator == ';'
+}
+
+func isDelimiter(str string) bool {
+	match, _ := regexp.MatchString("^[0-9]([0-9]|.)*(G|M|B|K)$", str)
+	if match == true || str == "-" {
+		return true
+	}
+	return false
 }
 
 /*
