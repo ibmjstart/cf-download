@@ -17,7 +17,7 @@ Linux: [386](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/bi
 
 Usage
 
-cf download <APP_NAME> [PATH] [--options]     
+cf download APP_NAME [PATH] [--overwrite] [--verbose] [--omit ommited_path] [--routines max_routines] [-i instance]
 path and flags are optional, setting a path will start the download from the specified path instead of the app root.
 Use cf help download to see options
 

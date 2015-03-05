@@ -1,3 +1,14 @@
+/*
+* IBM Jstart team cf download cli Plugin
+* A plugin for downloading contents of a running app's file directory
+*
+* Authors: Miguel Clement, Jake Eden
+* Date: 3/5/2015
+*
+* for cross platform compiling use gox (https://github.com/mitchellh/gox)
+* gox compile command: gox -output="binaries/{{.OS}}/{{.Arch}}/cf-download" -os="linux darwin windows"
+ */
+
 package main
 
 import (
@@ -427,12 +438,12 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 		Commands: []plugin.Command{
 			plugin.Command{
 				Name:     "download",
-				HelpText: "Download contents of targeted directory",
+				HelpText: "Download contents of a running app's file directory",
 
 				// UsageDetails is optional
 				// It is used to show help of usage of each command
 				UsageDetails: plugin.Usage{
-					Usage: "cf download APP_NAME [PATH] [--flags]",
+					Usage: "cf download APP_NAME [PATH] [--overwrite] [--verbose] [--omit ommited_path] [--routines num_max_routines] [-i instance]",
 					Options: map[string]string{
 						"overwrite": "overwrite files",
 						"verbose":   "verbose",
