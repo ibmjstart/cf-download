@@ -1,5 +1,5 @@
 /*
-* IBM Jstart team cf download cli Plugin
+* IBM jStart team cf download cli Plugin
 * A plugin for downloading contents of a running app's file directory
 *
 * Authors: Miguel Clement, Jake Eden
@@ -40,13 +40,13 @@ type cliError struct {
 }
 
 var (
-	rootWorkingDirectory string
-	appName              string
-	instance             string
-	verbose              bool
-	failedDownloads      []string
-	filesDownloaded      int
-	onWindows            bool
+	rootWorkingDirectory string   //
+	appName              string   //
+	instance             string   //
+	verbose              bool     //
+	failedDownloads      []string //
+	filesDownloaded      int      //
+	onWindows            bool     //
 )
 
 // global wait group for all download threads
@@ -159,13 +159,21 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			if !strings.HasSuffix(startingPath, "/") {
 				startingPath += "/"
 			}
+			if strings.HasPrefix(startingPath, "/") {
+				startingPath = strings.TrimPrefix(startingPath, "/")
+			}
 			rootWorkingDirectory += startingPath
+			if !strings.HasPrefix(startingPath, "/") {
+				startingPath = "/" + startingPath
+			}
 		}
 
 		// parse the directory
 		files, dirs := execParseDir(startingPath)
 
-		fmt.Printf("Files completed: %d", filesDownloaded)
+		if !verbose {
+			fmt.Printf("Files completed: %d", filesDownloaded)
+		}
 
 		// stop consoleWriter
 		quit := make(chan int)
@@ -189,11 +197,11 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		// let user know if any files were inaccessible
 		if len(failedDownloads) == 1 {
 			fmt.Println("")
-			fmt.Println(len(failedDownloads), "file was not downloaded (inaccessible or corrupt):")
+			fmt.Println(len(failedDownloads), "file or directory was not downloaded (permissions issue or corrupt):")
 			printSlice(failedDownloads)
 		} else if len(failedDownloads) > 1 {
 			fmt.Println("")
-			fmt.Println(len(failedDownloads), "files were not downloaded (inaccessible or corrupt):")
+			fmt.Println(len(failedDownloads), "files or directories were not downloaded (permissions issue or corrupt):")
 			printSlice(failedDownloads)
 		}
 
@@ -217,27 +225,51 @@ func getFilterList(omitString string) []string {
 
 	// Add .cfignore files to filterList
 	content, err := ioutil.ReadFile(".cfignore")
-	if err != nil {
+	if err != nil && verbose {
 		fmt.Println("[ Info: ", err, "]")
 	} else {
-		lines := strings.Split(string(content), "\n")
+		lines := strings.Split(string(content), "\n") // get each line in .cfignore
+
+		// Remove any leading forward slashes
+		for i := 0; i < len(lines); i++ {
+			lines[i] = strings.TrimPrefix(lines[i], "/")
+		}
+
 		filterList = append(filterList, lines[0:]...)
+
+		// remove empty strings that we got from the last line
 		if len(filterList) > 0 && filterList[len(filterList)-1] == "" {
 			filterList = filterList[:len(filterList)-1]
 		}
 	}
 
+	// Add the path from the --omit param to filterList
 	if omitString != "" {
-		filterList = append(filterList, omitString) // add --omit param to filterList
+
+		allOmits := strings.Split(omitString, ",")
+
+		// Parse for each path and remove leading forward slashes
+		for i := 0; i < len(allOmits); i++ {
+			allOmits[i] = strings.TrimSpace(allOmits[i])
+			allOmits[i] = strings.TrimPrefix(allOmits[i], "/")
+		}
+		filterList = append(filterList, allOmits[0:]...)
 	}
+
+	var returnList []string // filtered strings to be returned
 
 	// Remove any trailing forward slashes in the filterList[ex: app/ becomes app]
 	for i, _ := range filterList {
 		filterList[i] = strings.TrimSuffix(filterList[i], "/")
 		filterList[i] = "/" + filterList[i]
+
+		// don't include any empty strings, which only have a forward slash
+		if strings.TrimSpace(filterList[i]) != "/" {
+			returnList = append(returnList, filterList[i])
+		}
 	}
 
-	return filterList
+	return returnList
 }
 
 /*
@@ -287,6 +319,22 @@ func execParseDir(readPath string) ([]string, []string) {
 		fmt.Println(errmsg)
 	}
 
+	// directory inaccessible due to lack of permissions
+	if strings.Contains(dirSlice[1], "FAILED") {
+		errmsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "yellow")
+		if onWindows == true {
+			errmsg = " Server Error: '" + readPath + "' not downloaded"
+		}
+		failedDownloads = append(failedDownloads, errmsg)
+		if verbose {
+			fmt.Println(errmsg)
+		}
+		return nil, nil
+	} else {
+		// check for other errors
+		check(cliError{err: err, errMsg: "Called by: downloadFile 1"})
+	}
+
 	// this usually gets called when an app is not running and you attempt to download it.
 	dir := dirSlice[2]
 	if strings.Contains(dir, "error code: 190001") {
@@ -302,6 +350,7 @@ func execParseDir(readPath string) ([]string, []string) {
 	if strings.Contains(dir, "No files found") {
 		return nil, nil
 	} else {
+		//check(cliError{err: err, errMsg:"Directory or file not found. Check filename or path on command line"})
 		check(cliError{err: err, errMsg: "Called by: ExecParseDir [cf files " + appName + " " + readPath + "]"})
 	}
 
@@ -341,16 +390,18 @@ func downloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup)
 	file := strings.SplitAfterN(string(output), "\n", 3)
 
 	// check for invalid file error.
-	// some files are inaccesible from the cf files (reasons unknown) this is rare but we need to
-	// alert users if it occurs
+	// some files are inaccesible from the cf files (permission issues) this is rare but we need to
+	// alert users if it occurs. It usually happens in vendor files.
 	fileAsString := file[2]
 	if strings.Contains(file[1], "FAILED") {
-		errmsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "red")
+		errmsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "yellow")
 		if onWindows == true {
 			errmsg = " Server Error: '" + readPath + "' not downloaded"
 		}
 		failedDownloads = append(failedDownloads, errmsg)
-		fmt.Println(errmsg)
+		if verbose {
+			fmt.Println(errmsg)
+		}
 		return nil
 	} else {
 		// check for other errors
@@ -460,13 +511,13 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 				// UsageDetails is optional
 				// It is used to show help of usage of each command
 				UsageDetails: plugin.Usage{
-					Usage: "cf download APP_NAME [PATH] [--overwrite] [--verbose] [--omit ommited_path] [--routines num_max_routines] [-i instance_num]",
+					Usage: "cf download APP_NAME [PATH] [--overwrite] [--verbose] [--omit ommited_paths] [--routines num_max_routines] [-i instance_num]",
 					Options: map[string]string{
-						"overwrite":           "Overwrite existing files",
-						"verbose":             "Verbose output",
-						"omit 'path/or/file'": "Omit directory or file",
-						"routines":            "Max number of concurrent subroutines (default 200)",
-						"i":                   "Instance",
+						"overwrite":             "Overwrite existing files",
+						"verbose":               "Verbose output",
+						"omit \"path/to/file\"": "Omit directories or files delimited by commas",
+						"routines":              "Max number of concurrent subroutines (default 200)",
+						"i":                     "Instance",
 					},
 				},
 			},

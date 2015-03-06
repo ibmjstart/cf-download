@@ -5,8 +5,8 @@ A Cloud Foundry cli plugin for downloading
 Install 
 1. download binary (See Download Section)
 2. **cd path/to/downloaded/binary**
-3. Only if updating: run **cf uninstall-plugin download** first
-3. **cf install-plugin download** note: may require sudo because of download file permissions
+3. Only if updating: run **cf uninstall-plugin cf-download** first
+3. **cf install-plugin cf-download** note: may require sudo because of download file permissions
 4. make sure plugin shows up in **cf plugins** 
 
 Download
