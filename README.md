@@ -4,8 +4,9 @@
 ## Install 
 1. download binary (See Download Section)
 2. **cd path/to/downloaded/binary**
-3. Give yourself the proper permissions to install with **chmod +x ~/cf-download** 
-4. If you've already installed the plugin and are updating, you must first run **cf uninstall-plugin cf-download** 
+3. 
+4. If you've already installed the plugin and are updating, you must first run **cf uninstall-plugin
+	* If you get a permission error run: **chmod +x ~/cf-download** cf-download** on the binary
 5. Then install the plugin with **cf install-plugin cf-download** 
 6. Verify the plugin installed by looking for it with **cf plugins** 
 
