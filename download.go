@@ -246,7 +246,7 @@ func getFilterList(omitString string) []string {
 	// Add the path from the --omit param to filterList
 	if omitString != "" {
 
-		allOmits := strings.Split(omitString, ",")
+		allOmits := strings.Split(omitString, ";")
 
 		// Parse for each path and remove leading forward slashes
 		for i := 0; i < len(allOmits); i++ {
