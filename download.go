@@ -319,22 +319,6 @@ func execParseDir(readPath string) ([]string, []string) {
 		fmt.Println(errmsg)
 	}
 
-	// directory inaccessible due to lack of permissions
-	if strings.Contains(dirSlice[1], "FAILED") {
-		errmsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "yellow")
-		if onWindows == true {
-			errmsg = " Server Error: '" + readPath + "' not downloaded"
-		}
-		failedDownloads = append(failedDownloads, errmsg)
-		if verbose {
-			fmt.Println(errmsg)
-		}
-		return nil, nil
-	} else {
-		// check for other errors
-		check(cliError{err: err, errMsg: "Called by: downloadFile 1"})
-	}
-
 	// this usually gets called when an app is not running and you attempt to download it.
 	dir := dirSlice[2]
 	if strings.Contains(dir, "error code: 190001") {
@@ -352,6 +336,22 @@ func execParseDir(readPath string) ([]string, []string) {
 	} else {
 		//check(cliError{err: err, errMsg:"Directory or file not found. Check filename or path on command line"})
 		check(cliError{err: err, errMsg: "Called by: ExecParseDir [cf files " + appName + " " + readPath + "]"})
+	}
+
+	// directory inaccessible due to lack of permissions
+	if strings.Contains(dirSlice[1], "FAILED") {
+		errmsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "yellow")
+		if onWindows == true {
+			errmsg = " Server Error: '" + readPath + "' not downloaded"
+		}
+		failedDownloads = append(failedDownloads, errmsg)
+		if verbose {
+			fmt.Println(errmsg)
+		}
+		return nil, nil
+	} else {
+		// check for other errors
+		check(cliError{err: err, errMsg: "Called by: downloadFile 1"})
 	}
 
 	// parse the returned output into files and dirs slices
