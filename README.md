@@ -4,16 +4,16 @@
 ## Install 
 1. download binary (See Download Section)
 2. **cd path/to/downloaded/binary**
-3. If you've already installed the plugin and are updating, you must first run **cf uninstall-plugin**
-	* If you get a permission error run: **chmod +x ~/cf-download** on the binary
+3. If you've already installed the plugin and are updating, you must first run **cf uninstall-plugin download**
 4. Then install the plugin with **cf install-plugin cf-download** 
+	* If you get a permission error run: **chmod +x cf-download** on the binary
 5. Verify the plugin installed by looking for it with **cf plugins** 
 
 ## Download
 
-#### Mac:       [x86](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/binaries/darwin/386/cf-download) | [amd 64](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/binaries/darwin/amd64/cf-download)   
-#### Windows:   [x86](https://github.rtp.raleigh.ibm.com/jstart/cf-download/blob/master/binaries/windows/386/cf-download.exe) | [amd64](https://github.rtp.raleigh.ibm.com/jstart/cf-download/blob/master/binaries/windows/amd64/cf-download.exe)    
-#### Linux:     [x86](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/binaries/linux/386/cf-download) | [amd64](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/binaries/linux/amd64/cf-download) | [arm](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/binaries/linux/arm/cf-download)
+#### Mac:       [32-bit](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/binaries/darwin/386/cf-download) | [64-bit](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/binaries/darwin/amd64/cf-download)   
+#### Windows:   [32-bit](https://github.rtp.raleigh.ibm.com/jstart/cf-download/blob/master/binaries/windows/386/cf-download.exe) | [64-bit](https://github.rtp.raleigh.ibm.com/jstart/cf-download/blob/master/binaries/windows/amd64/cf-download.exe)    
+#### Linux:     [32-bit](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/binaries/linux/386/cf-download) | [64-bit](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/binaries/linux/amd64/cf-download) | [arm](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/binaries/linux/arm/cf-download)
 
 ***
 

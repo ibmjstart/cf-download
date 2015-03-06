@@ -515,7 +515,7 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 					Options: map[string]string{
 						"overwrite":             "Overwrite existing files",
 						"verbose":               "Verbose output",
-						"omit \"path/to/file\"": "Omit directories or files delimited by commas",
+						"omit \"path/to/file\"": "Omit directories or files delimited by semicolons",
 						"routines":              "Max number of concurrent subroutines (default 200)",
 						"i":                     "Instance",
 					},
