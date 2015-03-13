@@ -1,4 +1,9 @@
-package main
+/*
+	This file is used to test the cliconnection for concurrency. Currently concurrency does not work.
+	If this test passes we will beable
+*/
+
+package concurrent
 
 import (
 	"fmt"
@@ -21,13 +26,13 @@ type cliError struct {
 }
 
 var (
-	rootWorkingDirectory string   //
-	appName              string   //
-	instance             string   //
-	verbose              bool     //
-	failedDownloads      []string //
-	filesDownloaded      int      //
-	onWindows            bool     //
+	rootWorkingDirectory string
+	appName              string
+	instance             string
+	verbose              bool
+	failedDownloads      []string
+	filesDownloaded      int
+	onWindows            bool
 	connection           plugin.CliConnection
 )
 
