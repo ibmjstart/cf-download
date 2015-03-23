@@ -77,6 +77,10 @@ var wg sync.WaitGroup
  */
 
 func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) {
+	if args[0] != "download" {
+		os.Exit(0)
+	}
+
 	// start time for download timer
 	start := time.Now()
 	proceed := true
@@ -93,7 +97,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		proceed = false
 	}
 
-	copyOfArgs, proceed, flagVals := ParseFlags(args)
+	copyOfArgs, proceed, flagVals := ParseFlags(args, proceed)
 
 	if proceed == false {
 		os.Exit(1)
@@ -181,8 +185,7 @@ func GetDirectoryContext(workingDir string, copyOfArgs []string) (string, string
 	return rootWorkingDirectory, startingPath
 }
 
-func ParseFlags(args []string) ([]string, bool, flagVal) {
-	var proceed bool
+func ParseFlags(args []string, proceed bool) ([]string, bool, flagVal) {
 
 	// Create flagSet f1
 	f1 := flag.NewFlagSet("f1", flag.ContinueOnError)
