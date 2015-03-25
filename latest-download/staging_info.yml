@@ -1,0 +1,7 @@
+
+---
+buildpack_path: !ruby/object:Pathname
+  path: /tmp/buildpacks/php-buildpack
+detected_buildpack: 
+start_command: $HOME/start.sh
+
