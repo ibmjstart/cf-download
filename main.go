@@ -139,10 +139,6 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		// parse the directory
 		files, dirs := parser.ExecParseDir(startingPath)
 
-		if verbose == false {
-			fmt.Printf("Files completed: %d", filesDownloaded)
-		}
-
 		// stop consoleWriter
 		quit := make(chan int)
 
@@ -157,12 +153,13 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 		// Wait for download goRoutines
 		wg.Wait()
-
+		fmt.Printf("Files completed: %d", filesDownloaded)
 		// stop console writer
 		if verbose == false {
 			quit <- 0
 		}
 
+		getFailedDownloads()
 		PrintCompletionInfo(start)
 
 	}
@@ -173,6 +170,10 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 * 	------------------------------------- Helper Functions ----------------------------------------
 * 	-----------------------------------------------------------------------------------------------
  */
+
+func getFailedDownloads() {
+	failedDownloads = append(parser.GetFailedDownloads(), dloader.GetFailedDownloads()...)
+}
 
 func GetDirectoryContext(workingDir string, copyOfArgs []string) (string, string) {
 	rootWorkingDirectory := workingDir + "/" + appName + "-download/"
