@@ -72,17 +72,16 @@ var _ = Describe("Downloader tests", func() {
 				cmdExec.SetFakeDir(true)
 
 				//remeber to turn off fake dir flag
-				defer cmdExec.SetFakeDir(false)
+				//defer cmdExec.SetFakeDir(false)
 
 				files := []string{}
-				dirs := []string{"testFiles"}
+				dirs := []string{"/testFiles/"}
 				filterList := []string{"ignore.go"}
 
-				fmt.Println("READPATH: ", currentDirectory)
-				//wg.Add(1)
+				//wg := d.GetWaitGroup()
+				wg.Add(1)
 				go d.Download(files, dirs, readPath, writePath, filterList)
-				//wg.Wait()
-
+				wg.Wait()
 				Ω(len(dirs)).To(Equal(1))
 			})
 		})
@@ -114,9 +113,9 @@ var _ = Describe("Downloader tests", func() {
 	})
 
 	Describe("Test GetFilesDownloadedCount Function", func() {
-		It("after downloading 2 files", func() {
+		It("after downloading 8 files", func() {
 			count := d.GetFilesDownloadedCount()
-			Ω(count).To(Equal(2))
+			Ω(count).To(Equal(8))
 		})
 	})
 

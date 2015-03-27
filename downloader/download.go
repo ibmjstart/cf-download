@@ -14,8 +14,6 @@ import (
 	"github.com/mgutz/ansi"
 )
 
-var wg *sync.WaitGroup
-
 type Downloader interface {
 	Download(files, dirs []string, readPath, writePath string, filterList []string) error
 	DownloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup) error
@@ -36,10 +34,11 @@ type downloader struct {
 	failedDownloads      []string
 	filesDownloaded      int
 	parser               dir_parser.Parser
+	wg                   *sync.WaitGroup
 }
 
 func NewDownloader(cmdExec cmd_exec.CmdExec, WG *sync.WaitGroup, appName, instance, rootWorkingDirectory string, verbose, onWindows bool) *downloader {
-	wg = WG
+
 	return &downloader{
 		cmdExec:              cmdExec,
 		rootWorkingDirectory: rootWorkingDirectory,
@@ -48,6 +47,7 @@ func NewDownloader(cmdExec cmd_exec.CmdExec, WG *sync.WaitGroup, appName, instan
 		verbose:              verbose,
 		onWindows:            onWindows,
 		parser:               dir_parser.NewParser(cmdExec, appName, instance, onWindows, verbose),
+		wg:                   WG,
 	}
 }
 
@@ -57,8 +57,8 @@ type cliError struct {
 	errMsg string
 }
 
-func (d *downloader) GetWaitGroup() {
-	return d.w
+func (d *downloader) GetWaitGroup() *sync.WaitGroup {
+	return d.wg
 }
 
 /*
@@ -69,7 +69,7 @@ func (d *downloader) GetWaitGroup() {
 * 	file download.
  */
 func (d *downloader) Download(files, dirs []string, readPath, writePath string, filterList []string) error {
-	defer wg.Done()
+	defer d.wg.Done()
 
 	//create dir if does not exist
 	err := os.MkdirAll(writePath, 0755)
@@ -84,8 +84,8 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 			continue
 		}
 
-		wg.Add(1)
-		go d.DownloadFile(fileRPath, fileWPath, wg)
+		d.wg.Add(1)
+		go d.DownloadFile(fileRPath, fileWPath, d.wg)
 	}
 
 	// call download on every sub directory
@@ -102,7 +102,7 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 
 		files, dirs = d.parser.ExecParseDir(dirRPath)
 
-		wg.Add(1)
+		d.wg.Add(1)
 		go d.Download(files, dirs, dirRPath, dirWPath, filterList)
 	}
 	return nil

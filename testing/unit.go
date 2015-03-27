@@ -5,10 +5,13 @@ package main
 import (
 	"fmt"
 	"github.com/cf-download/cmd_exec_fake"
+	"github.com/cf-download/downloader"
 	"os"
 )
 
 var (
+	wg               sync.WaitGroup
+	d                Downloader
 	cmdExec          cmd_exec_fake.FakeCmdExec
 	currentDirectory string
 )
@@ -20,5 +23,5 @@ func main() {
 	readPath := currentDirectory + "/testFiles"
 
 	output, _ := cmdExec.GetFile("", readPath, "")
-	fmt.Println(string(output))
+
 }

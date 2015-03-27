@@ -1,6 +1,7 @@
 package cmd_exec_fake
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 )
@@ -34,7 +35,12 @@ func (c *cmdExec) GetFile(appName, readPath, instance string) ([]byte, error) {
 		return []byte(c.output), nil
 	}
 
+	// Needs to be appended to every response (for parser)
+	startString := "Getting files for app payToWin in org jstart / space koldus as email@us.ibm.com...\nOK\n"
+
 	fileInfo, _ := os.Stat(readPath)
+	fmt.Println("ReadPath: ", readPath)
+	fmt.Println("FileInfo: ", fileInfo)
 	if fileInfo.IsDir() {
 		file, _ := os.Open(readPath)
 		dirFiles, _ := file.Readdir(0)
@@ -46,11 +52,12 @@ func (c *cmdExec) GetFile(appName, readPath, instance string) ([]byte, error) {
 				dirString += "\n" + val.Name() + " 		1B"
 			}
 		}
-		startString := "Getting files for app payToWin in org jstart / space koldus as email@us.ibm.com...\nOK\n"
+
 		output = []byte(startString + dirString)
 
 	} else {
-		output, _ = ioutil.ReadFile(readPath)
+		fileContents, _ := ioutil.ReadFile(readPath)
+		output = []byte(startString + string(fileContents))
 	}
 	return output, nil
 }
