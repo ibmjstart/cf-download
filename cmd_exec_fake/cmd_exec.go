@@ -2,6 +2,7 @@ package cmd_exec_fake
 
 type FakeCmdExec interface {
 	GetFile(appName, readPath, instance string) ([]byte, error)
+	SetOutput(output string)
 }
 
 type cmdExec struct {
