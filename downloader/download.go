@@ -23,6 +23,7 @@ type Downloader interface {
 	CheckDownload(readPath string, file []string, err error) error
 	GetFilesDownloadedCount() int
 	GetFailedDownloads() []string
+	GetWaitGroup() *sync.WaitGroup
 }
 
 type downloader struct {
@@ -54,6 +55,10 @@ func NewDownloader(cmdExec cmd_exec.CmdExec, WG *sync.WaitGroup, appName, instan
 type cliError struct {
 	err    error
 	errMsg string
+}
+
+func (d *downloader) GetWaitGroup() {
+	return d.w
 }
 
 /*

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/cf-download/cmd_exec_fake"
 	. "github.com/cf-download/dir_parser"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,9 +12,9 @@ import (
 var _ = Describe("DirParser", func() {
 	var p Parser
 	var cmdExec cmd_exec_fake.FakeCmdExec
+
 	BeforeEach(func() {
 		cmdExec = cmd_exec_fake.NewCmdExec()
-		cmdExec.SetOutput("Getting files for app debugger in org jstart / space boilerplates as email@us.ibm.com...\nOK\n.bash_logout 220B\n.bashrc 3.0K\n.profile 675B\napp/ -\nlogs/ -\nrun.pid 3B\nstaging_info.yml 131B\ntmp/ -")
 		p = NewParser(cmdExec, "TestApp", "0", false, false)
 	})
 	Describe("Test getFailedDownloads()", func() {
@@ -29,6 +28,7 @@ var _ = Describe("DirParser", func() {
 	// testing execParseDir on three different directory strings
 	Describe("Test ExecParseDir()", func() {
 		It("Should return 5 files and 3 directories", func() {
+			cmdExec.SetOutput("Getting files for app debugger in org jstart / space reveille as email@us.ibm.com...\nOK\n.bash_logout 220B\n.bashrc 3.0K\n.profile 675B\napp/ -\nlogs/ -\nrun.pid 3B\nstaging_info.yml 131B\ntmp/ -")
 			files, directories := p.ExecParseDir("readPath")
 			Ω(len(files)).To(Equal(5))
 			Ω(files[0]).To(Equal(".bash_logout"))
@@ -45,7 +45,7 @@ var _ = Describe("DirParser", func() {
 
 	Describe("Test ExecParseDir()", func() {
 		It("Should return 8 files and 3 directories", func() {
-			cmdExec.SetOutput("Getting files for app smithInTheHouse in org jstart / space MilkWing as mfclemen@us.ibm.com...\nOK\n\n.npmignore 80B\n.travis.yml 47B\nHistory.md 41.1K\nLICENSE 1.1K\nMakefile 600B\nReadme.md 4.2K\nbin/ -\nindex.js 104B\nlib/ -\nnode_modules/ -\npackage.json 2.2K")
+			cmdExec.SetOutput("Getting files for app smithInTheHouse in org jstart / space kylefield as email@us.ibm.com...\nOK\n\n.npmignore 80B\n.travis.yml 47B\nHistory.md 41.1K\nLICENSE 1.1K\nMakefile 600B\nReadme.md 4.2K\nbin/ -\nindex.js 104B\nlib/ -\nnode_modules/ -\npackage.json 2.2K")
 			files, directories := p.ExecParseDir("readPath")
 			Ω(len(files)).To(Equal(8))
 			Ω(files[0]).To(Equal(".npmignore"))
@@ -65,7 +65,7 @@ var _ = Describe("DirParser", func() {
 
 	Describe("Test ExecParseDir()", func() {
 		It("Should return 8 files and 3 directories", func() {
-			cmdExec.SetOutput("Getting files for app smithInTheHouse in org jstart / space MilkWing as mfclemen@us.ibm.com...\nOK\n\n.npmignore 136B\nLICENSE 1.1K\nREADME.md 5.3K\nReadme_zh-cn.md 28.4K\nbin/ -\ncomponent.json 282B\nindex.js 95B\njade-language.md 20.0K\njade.js 757.2K\njade.md 11.3K\nlib/ -\nnode_modules/ -\npackage.json 2.0K\nruntime.js 5.1K")
+			cmdExec.SetOutput("Getting files for app smithInTheHouse in org jstart / space evans as email@us.ibm.com...\nOK\n\n.npmignore 136B\nLICENSE 1.1K\nREADME.md 5.3K\nReadme_zh-cn.md 28.4K\nbin/ -\ncomponent.json 282B\nindex.js 95B\njade-language.md 20.0K\njade.js 757.2K\njade.md 11.3K\nlib/ -\nnode_modules/ -\npackage.json 2.0K\nruntime.js 5.1K")
 			files, directories := p.ExecParseDir("readPath")
 			Ω(len(files)).To(Equal(11))
 			Ω(files[0]).To(Equal(".npmignore"))
@@ -86,11 +86,3 @@ var _ = Describe("DirParser", func() {
 		})
 	})
 })
-
-// prints slices in readable format
-func PrintSlice(slice []string) error {
-	for index, val := range slice {
-		fmt.Println(index, ": ", val)
-	}
-	return nil
-}

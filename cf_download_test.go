@@ -97,6 +97,24 @@ var _ = Describe("CfDownload", func() {
 
 	})
 
+	Describe("Check if current Directory exists", func() {
+		Context("when directory exists", func() {
+			It("Should return correct strings", func() {
+				args[0] = "download"
+				args[1] = "app_name"
+				args[2] = "app/src/node"
+				args[3] = "--verbose"
+				currentDirectory, _ := os.Getwd()
+				rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
+
+				correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+
+				Expect(correctSuffix).To(BeTrue())
+				Expect(startingPath).To(Equal("/app/src/node/"))
+			})
+		})
+	})
+
 	Describe("Test getDirectoryContext", func() {
 		Context("when directory exists", func() {
 			It("Should be true", func() {
