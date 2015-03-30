@@ -47,6 +47,7 @@ type cliError struct {
 * 	to be downloaded by download() and downloadFile() respectively.
  */
 func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
+
 	// make the cf files call using exec
 	output, err := p.cmdExec.GetFile(p.appName, readPath, p.instance)
 	dirSlice := strings.SplitAfterN(string(output), "\n", 3)

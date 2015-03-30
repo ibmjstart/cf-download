@@ -1,7 +1,6 @@
 package main_test
 
 import (
-	"errors"
 	"os"
 	"strings"
 
@@ -127,6 +126,11 @@ var _ = Describe("CfDownload", func() {
 })
 
 //full integration test
-var _ = Describe("CfDownload", func() {
-
-}
+var _ = Describe("CfDownload full integration", func() {
+	Context("cf download ", func() {
+		It("Should be true", func() {
+			currentDirectory, _ := os.Getwd()
+			Expect(Exists(currentDirectory)).To(BeTrue())
+		})
+	})
+})
