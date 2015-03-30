@@ -62,8 +62,11 @@ func GetFilterList(omitString string, verbose bool) []string {
 func CheckToFilter(appPath, rootWorkingDirectory string, filterList []string) bool {
 	appPath = strings.TrimSuffix(appPath, "/")
 	comparePath1 := strings.TrimPrefix(appPath, rootWorkingDirectory)
-
+	/*fmt.Println("\nCompareTo:	   ", comparePath1)*/
 	for _, item := range filterList {
+
+		/*fmt.Println("	filterItem:", item)
+		fmt.Println("	equal:", comparePath1 == item)*/
 		if comparePath1 == item {
 			return true
 		}
