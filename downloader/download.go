@@ -112,9 +112,9 @@ func (d *downloader) DownloadFile(readPath, writePath string, fileDownloadGroup 
 	defer fileDownloadGroup.Done()
 
 	output, err := d.cmdExec.GetFile(d.appName, readPath, d.instance)
-	check(cliError{err: err, errMsg: "Called by: downloadFile 1"})
+	//fmt.Println(string(output))
 	err = d.WriteFile(readPath, writePath, output, err)
-	check(cliError{err: err, errMsg: "Called by: downloadFile 2"})
+	check(cliError{err: err, errMsg: "Called by: downloadFile 1 [cf files " + d.appName + " " + readPath + "]"})
 
 	return nil
 }
@@ -153,9 +153,12 @@ func (d *downloader) CheckDownload(readPath string, file []string, err error) er
 			fmt.Println(errmsg)
 		}
 		return errors.New("download failed")
+	} else if strings.Contains(file[1], "status code: 502") {
+		PrintSlice(file)
+		// TODO: add these files to a retry queue and retry downloading them at the end.
 	} else {
 		// check for other errors
-		check(cliError{err: err, errMsg: "Called by: CheckDownload"})
+		check(cliError{err: err, errMsg: "Called by: CheckDownload [cf files " + d.appName + " " + readPath + "]"})
 	}
 	return nil
 }
@@ -176,4 +179,12 @@ func check(e cliError) {
 		}
 		os.Exit(1)
 	}
+}
+
+// prints slices in readable format
+func PrintSlice(slice []string) error {
+	for index, val := range slice {
+		fmt.Println(index, ": ", val)
+	}
+	return nil
 }
