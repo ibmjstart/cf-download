@@ -135,6 +135,7 @@ var _ = Describe("Downloader tests", func() {
 
 				rootFile, _ := os.Open(writePath + "/testFiles/")
 				rootContents, _ := rootFile.Readdir(0)
+
 				Ω(rootContents[0].Name()).To(Equal("app_content"))
 				Ω(rootContents[1].Name()).To(Equal("ignore.go"))
 				Ω(rootContents[2].Name()).To(Equal("ignoreDir"))
