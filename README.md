@@ -61,3 +61,6 @@ In case your download seems to be stuck, we recommend terminating and redownload
 
 #### Downloading Jar files:
 Projects containing jar files can trigger antivirus software while being downloaded. you can either temporarily disable network antivirus protection or exclude directories containing jar files.
+
+#### I am getting a lot of 502 errors, why?:
+On rare occasions the cf cli api that the plugin uses can get overburdened by the plugin. This will display a lot of 502 error messages to the command line. The best thing to do in this case is wait a couple minutes and try again later. The Api will hopefully return to full capacity and allow downloads to complete. In the unlikely case that you experience this often, create an issue on this repo and we can explore solutions.  
