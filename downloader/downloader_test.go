@@ -2,8 +2,8 @@ package downloader_test
 
 import (
 	"errors"
-	"github.com/cf-download/cmd_exec_fake"
-	. "github.com/cf-download/downloader"
+	"github.com/ibmjstart/cf-download/cmd_exec_fake"
+	. "github.com/ibmjstart/cf-download/downloader"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"io/ioutil"

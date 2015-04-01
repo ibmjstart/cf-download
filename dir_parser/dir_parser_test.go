@@ -1,8 +1,8 @@
 package dir_parser_test
 
 import (
-	"github.com/cf-download/cmd_exec_fake"
-	. "github.com/cf-download/dir_parser"
+	"github.com/ibmjstart/cf-download/cmd_exec_fake"
+	. "github.com/ibmjstart/cf-download/dir_parser"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

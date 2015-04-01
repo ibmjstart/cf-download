@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	. "github.com/cf-download"
+	. "github.com/ibmjstart/cf-download"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

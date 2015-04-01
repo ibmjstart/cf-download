@@ -8,9 +8,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cf-download/cmd_exec"
-	"github.com/cf-download/dir_parser"
-	"github.com/cf-download/filter"
+	"github.com/ibmjstart/cf-download/cmd_exec"
+	"github.com/ibmjstart/cf-download/dir_parser"
+	"github.com/ibmjstart/cf-download/filter"
 	"github.com/mgutz/ansi"
 )
 

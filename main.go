@@ -22,11 +22,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cf-download/cmd_exec"
-	"github.com/cf-download/dir_parser"
-	"github.com/cf-download/downloader"
-	"github.com/cf-download/filter"
 	"github.com/cloudfoundry/cli/plugin"
+	"github.com/ibmjstart/cf-download/cmd_exec"
+	"github.com/ibmjstart/cf-download/dir_parser"
+	"github.com/ibmjstart/cf-download/downloader"
+	"github.com/ibmjstart/cf-download/filter"
 	"github.com/mgutz/ansi"
 )
 

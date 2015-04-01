@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/cf-download/cmd_exec"
+	"github.com/ibmjstart/cf-download/cmd_exec"
 	"github.com/mgutz/ansi"
 )
 
