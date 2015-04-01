@@ -155,7 +155,7 @@ func (d *downloader) CheckDownload(readPath string, file []string, err error) er
 		return errors.New("download failed")
 	} else if strings.Contains(file[1], "status code: 502") {
 		PrintSlice(file)
-		// TODO: add these files to a retry queue and retry downloading them at the end.
+		// TODO: add these files to a retry queue and retry downloading them at the end. (see feature branch)
 	} else {
 		// check for other errors
 		check(cliError{err: err, errMsg: "Called by: CheckDownload [cf files " + d.appName + " " + readPath + "]"})

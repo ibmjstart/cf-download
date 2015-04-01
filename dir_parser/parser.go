@@ -64,9 +64,9 @@ func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
 	// p usually gets called when an app is not running and you attempt to download it.
 	dir := dirSlice[2]
 	if strings.Contains(dir, "error code: 190001") {
-		errmsg := ansi.Color("App not found, or the app is in stopped state", "red+b")
+		errmsg := ansi.Color("App not found, or the app is in stopped state (This can also be caused by api failure)", "red+b")
 		if p.onWindows == true {
-			errmsg = "App not found, possibly not yet running"
+			errmsg = "App not found, or the app is in stopped state (This can also be caused by api failure)"
 		}
 		fmt.Println(errmsg)
 		check(cliError{err: err, errMsg: "App not found"})
