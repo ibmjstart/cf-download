@@ -64,3 +64,6 @@ Projects containing jar files can trigger antivirus software while being downloa
 
 #### I am getting a lot of 502 errors, why?:
 On rare occasions the cf cli api that the plugin uses can get overburdened by the plugin. This will display a lot of 502 error messages to the command line. The best thing to do in this case is wait a couple minutes and try again later. The Api will hopefully return to full capacity and allow downloads to complete. In the unlikely case that you experience this often, create an issue on this repo and we can explore solutions.  
+
+#### Error: "App not found, or the app is in stopped state (This can also be caused by api failure)":
+This error is caused when the cf cli api fails. Best solution is to wait and try again, when the api recovers.
