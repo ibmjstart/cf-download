@@ -115,7 +115,7 @@ var _ = Describe("CfDownload", func() {
 	})
 
 	Describe("Test getDirectoryContext", func() {
-		Context("when directory exists", func() {
+		Context("when directory exists", func() { //this test doesn't achieve anything, it is not testing GetDirectoryContext
 			It("Should be true", func() {
 				currentDirectory, _ := os.Getwd()
 				Expect(Exists(currentDirectory)).To(BeTrue())
@@ -125,9 +125,9 @@ var _ = Describe("CfDownload", func() {
 
 })
 
-//full integration test
+//full integration test 
 var _ = Describe("CfDownload full integration", func() {
-	Context("cf download ", func() {
+	Context("cf download ", func() { //again, this test doesn't achieve anything
 		It("Should be true", func() {
 			currentDirectory, _ := os.Getwd()
 			Expect(Exists(currentDirectory)).To(BeTrue())

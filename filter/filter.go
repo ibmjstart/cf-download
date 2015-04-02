@@ -51,8 +51,8 @@ func GetFilterList(omitString string, verbose bool) []string {
 		filterList[i] = "/" + filterList[i]
 
 		// don't include any empty strings, which only have a forward slash
-		if strings.TrimSpace(filterList[i]) != "/" {
-			returnList = append(returnList, filterList[i])
+		if strings.TrimSpace(filterList[i]) != "/" { //there are multiple checks for empty string above, seems redundant, maybe append all and check whole list here?
+			returnList = append(returnList, filterList[i]) //just append anything >1 character after trimming space
 		}
 	}
 

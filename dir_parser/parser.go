@@ -55,7 +55,7 @@ func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
 	// check for invalid or missing app
 	if strings.Contains(dirSlice[1], "not found") {
 		errmsg := ansi.Color("Error: "+p.appName+" app not found (check space and org)", "red+b")
-		if p.onWindows == true {
+		if p.onWindows == true { //line #57-61 seems to occurred many times in the module, refactor into a func for readability
 			errmsg = "Error: " + p.appName + " app not found (check space and org)"
 		}
 		fmt.Println(errmsg)
