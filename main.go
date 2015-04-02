@@ -37,7 +37,7 @@ import (
 type downloadPlugin struct{}
 
 // error struct that allows appending error messages
-type cliError struct {
+type cliError struct { //we don't need this struct, see line #307
 	err    error
 	errMsg string
 }
@@ -54,7 +54,7 @@ type flagVal struct {
 var (
 	rootWorkingDirectory string
 	appName              string
-	instance             string
+	instance             string //these vars shouldn't be global, and are not necessary entirely, just use flagVal struct
 	verbose              bool
 	onWindows            bool
 	omitp                bool
@@ -89,7 +89,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 	// start time for download timer
 	start := time.Now()
-	proceed := true
+	proceed := true  //no need for this var
 
 	// disables ansi text color on windows
 	onWindows = IsWindows()
@@ -100,7 +100,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		check(cliError{err: err, errMsg: ""})
 		fmt.Println("\nError: Missing App Name")
 		fmt.Printf("%s", output)
-		proceed = false
+		proceed = false //we can just exit here instead of line #109
 	}
 
 	copyOfArgs, proceed, flagVals := ParseFlags(args, proceed)
@@ -109,11 +109,11 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		os.Exit(1)
 	} else {
 		// flag variables
-		maxRoutines := *flagVals.MaxRoutinesp_flag
-		overWrite := *flagVals.OverWritep_flag
-		instance = strconv.Itoa(*flagVals.Instancep_flag)
-		verbose = *flagVals.Verbosep_flag
-		runtime.GOMAXPROCS(maxRoutines)                                   // set number of go routines
+		maxRoutines := *flagVals.MaxRoutinesp_flag //make MaxRoutinesp_flag a int instead of *int, and use MaxRoutinesp_flag directly instad of assigning to maxRoutines
+		overWrite := *flagVals.OverWritep_flag //same as above
+		instance = strconv.Itoa(*flagVals.Instancep_flag)//same as above
+		verbose = *flagVals.Verbosep_flag //same as above
+		runtime.GOMAXPROCS(maxRoutines) //? why limit cpu cores, this doesn't control go routine limit    // set number of go routines
 		filterList := filter.GetFilterList(*flagVals.Omitp_flag, verbose) // get list of things to not download
 
 		workingDir, err := os.Getwd()
@@ -185,10 +185,10 @@ func GetDirectoryContext(workingDir string, copyOfArgs []string) (string, string
 		if !strings.HasSuffix(startingPath, "/") {
 			startingPath += "/"
 		}
-		if strings.HasPrefix(startingPath, "/") {
+		if strings.HasPrefix(startingPath, "/") { //don't need this block to Trim and append at line 193
 			startingPath = strings.TrimPrefix(startingPath, "/")
 		}
-		rootWorkingDirectory += startingPath
+		rootWorkingDirectory += startingPath //lose if block above, here should be rootWorkingDirectory += strings.TrimPrefix(startingPath,"/")
 		if !strings.HasPrefix(startingPath, "/") {
 			startingPath = "/" + startingPath
 		}
@@ -203,18 +203,18 @@ func ParseFlags(args []string, proceed bool) ([]string, bool, flagVal) {
 	f1 := flag.NewFlagSet("f1", flag.ContinueOnError)
 
 	// Create flags
-	omitp := f1.String("omit", "", "--omit path/to/some/file")
+	omitp := f1.String("omit", "", "--omit path/to/some/file") //don't need to assign to var, see line 243
 	overWritep := f1.Bool("overwrite", false, "--overwrite")
 	maxRoutinesp := f1.Int("routines", 200, "--routines [numOfRoutines]")
 	instancep := f1.Int("i", 0, "-i [instanceNum]")
-	verbosep := f1.Bool("verbose", false, "--verbose")
+	verbosep := f1.Bool("verbose", false, "--verbose") 
 
 	// need to copy args[] for later as they will be overwritten
-	copyOfArgs := make([]string, len(args))
+	copyOfArgs := make([]string, len(args))  //I don't see how args will be overwritten, copying args not necessary
 	for i := 0; i < len(args); i++ {
 		copyOfArgs[i] = args[i]
 	}
-
+	//we can just f1.Parse(args[1:]), no need to deal with os.Args
 	// flag package parses os.Args so we need to set it correctly
 	if len(args) > 2 && !strings.HasPrefix(args[2], "-") { // if there is a path as in 'cf download path' vs. 'cf download'
 		os.Args = append(os.Args[:1], args[3:]...)
@@ -240,7 +240,7 @@ func ParseFlags(args []string, proceed bool) ([]string, bool, flagVal) {
 	}
 
 	flagVals := flagVal{
-		Omitp_flag:        omitp,
+		Omitp_flag:        omitp, //inline init here. Omitp_flag f1.String("omit", "", "--omit path/to/some/file")
 		OverWritep_flag:   overWritep,
 		MaxRoutinesp_flag: maxRoutinesp,
 		Instancep_flag:    instancep,
@@ -304,7 +304,7 @@ func PrintCompletionInfo(start time.Time) {
 }
 
 // error check function
-func check(e cliError) {
+func check(e cliError) { //not need to make cliError{}, what about "func check(e err, errMsg string){}"
 	if e.err != nil {
 		fmt.Println("\nError: ", e.err)
 		if e.errMsg != "" {
@@ -322,7 +322,7 @@ func PrintSlice(slice []string) error {
 	return nil
 }
 
-func IsWindows() bool {
+func IsWindows() bool { //what about runtime.GOOS , more reliable than checking for PathSeparator
 	return os.PathSeparator == '\\' && os.PathListSeparator == ';'
 }
 
@@ -355,7 +355,7 @@ func Exists(path string) bool {
  */
 func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
-		Name: "download",
+		Name: "download", //maybe a more descriptive name for the plugin?
 		Version: plugin.VersionType{
 			Major: 0,
 			Minor: 1,
