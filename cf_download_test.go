@@ -22,7 +22,7 @@ var _ = Describe("CfDownload", func() {
 				args[1] = "app"
 				args[2] = "--overwrite"
 
-				_, flagVals := ParseFlags(args)
+				flagVals := ParseFlags(args)
 				Expect(flagVals.MaxRoutines_flag).To(Equal(200))
 				Expect(flagVals.OverWrite_flag).To(BeTrue())
 				Expect(flagVals.Instance_flag).To(Equal("0"))
@@ -37,7 +37,7 @@ var _ = Describe("CfDownload", func() {
 				args[1] = "app"
 				args[2] = "--verbose"
 
-				_, flagVals := ParseFlags(args)
+				flagVals := ParseFlags(args)
 				Expect(flagVals.MaxRoutines_flag).To(Equal(200))
 				Expect(flagVals.OverWrite_flag).To(BeFalse())
 				Expect(flagVals.Instance_flag).To(Equal("0"))
@@ -53,7 +53,7 @@ var _ = Describe("CfDownload", func() {
 				args[2] = "--routines"
 				args[3] = "555"
 
-				_, flagVals := ParseFlags(args)
+				flagVals := ParseFlags(args)
 				Expect(flagVals.MaxRoutines_flag).To(Equal(555))
 				Expect(flagVals.OverWrite_flag).To(BeFalse())
 				Expect(flagVals.Instance_flag).To(Equal("0"))
@@ -69,7 +69,7 @@ var _ = Describe("CfDownload", func() {
 				args[2] = "--i"
 				args[3] = "3"
 
-				_, flagVals := ParseFlags(args)
+				flagVals := ParseFlags(args)
 				Expect(flagVals.MaxRoutines_flag).To(Equal(200))
 				Expect(flagVals.OverWrite_flag).To(BeFalse())
 				Expect(flagVals.Instance_flag).To(Equal("3"))
@@ -85,7 +85,7 @@ var _ = Describe("CfDownload", func() {
 				args[2] = "--omit"
 				args[3] = "app/node_modules"
 
-				_, flagVals := ParseFlags(args)
+				flagVals := ParseFlags(args)
 				Expect(flagVals.MaxRoutines_flag).To(Equal(200))
 				Expect(flagVals.OverWrite_flag).To(BeFalse())
 				Expect(flagVals.Instance_flag).To(Equal("0"))

@@ -92,7 +92,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		os.Exit(1)
 	}
 
-	copyOfArgs, flagVals := ParseFlags(args)
+	flagVals := ParseFlags(args)
 
 	// flag variables
 	runtime.GOMAXPROCS(flagVals.MaxRoutines_flag)                                 // set number of go routines
@@ -100,7 +100,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 	workingDir, err := os.Getwd()
 	check(err, "Called by: Getwd")
-	rootWorkingDirectory, startingPath := GetDirectoryContext(workingDir, copyOfArgs)
+	rootWorkingDirectory, startingPath := GetDirectoryContext(workingDir, args)
 
 	// ensure cf_trace is disabled, otherwise parsing breaks
 	if os.Getenv("CF_TRACE") == "true" {
@@ -176,7 +176,7 @@ func GetDirectoryContext(workingDir string, copyOfArgs []string) (string, string
 	return rootWorkingDirectory, startingPath
 }
 
-func ParseFlags(args []string) ([]string, flagVal) {
+func ParseFlags(args []string) flagVal {
 
 	// Create flagSet f1
 	f1 := flag.NewFlagSet("f1", flag.ContinueOnError)
@@ -188,12 +188,6 @@ func ParseFlags(args []string) ([]string, flagVal) {
 	instancep := f1.Int("i", 0, "-i [instanceNum]")
 	verbosep := f1.Bool("verbose", false, "--verbose")
 
-	// need to copy args[] for later as they will be overwritten
-	copyOfArgs := make([]string, len(args))
-	for i := 0; i < len(args); i++ {
-		copyOfArgs[i] = args[i]
-	}
-
 	// flag package parses os.Args so we need to set it correctly
 	if len(args) > 2 && !strings.HasPrefix(args[2], "-") { // if there is a path as in 'cf download path' vs. 'cf download'
 		os.Args = append(os.Args[:1], args[3:]...)
@@ -202,7 +196,7 @@ func ParseFlags(args []string) ([]string, flagVal) {
 	}
 
 	// check for misplaced flags
-	appName = copyOfArgs[1]
+	appName = args[1]
 	if strings.HasPrefix(appName, "-") || strings.HasPrefix(appName, "--") {
 		fmt.Println("\nError: App name begins with '-' or '--'. correct flag usage: 'cf download APP_NAME [--flags]'")
 		os.Exit(1)
@@ -226,7 +220,7 @@ func ParseFlags(args []string) ([]string, flagVal) {
 		Verbose_flag:     *verbosep,
 	}
 
-	return copyOfArgs, flagVals
+	return flagVals
 }
 
 /*
@@ -338,7 +332,7 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 0,
 			Minor: 1,
-			Build: 2,
+			Build: 3,
 		},
 		Commands: []plugin.Command{
 			plugin.Command{

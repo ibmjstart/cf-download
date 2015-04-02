@@ -34,12 +34,6 @@ func NewParser(cmdExec cmd_exec.CmdExec, appName, instance string, onWindows, ve
 	}
 }
 
-// error struct that allows appending error messages
-type cliError struct {
-	err    error
-	errMsg string
-}
-
 /*
 *	execParseDir() uses os/exec to shell out commands to cf files with the given readPath. The returned
 *	text contains file and directory structure which is then parsed into two slices, dirs and files. dirs
@@ -69,7 +63,7 @@ func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
 			errmsg = "App not found, or the app is in stopped state (This can also be caused by api failure)"
 		}
 		fmt.Println(errmsg)
-		check(cliError{err: err, errMsg: "App not found"})
+		check(err, "App not found")
 	}
 
 	// handle an empty directory
@@ -77,7 +71,7 @@ func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
 		return nil, nil
 	} else {
 		//check(cliError{err: err, errMsg:"Directory or file not found. Check filename or path on command line"})
-		check(cliError{err: err, errMsg: "Called by: ExecParseDir [cf files " + p.appName + " " + readPath + "]"})
+		check(err, "Called by: ExecParseDir 1 [cf files "+p.appName+" "+readPath+"]")
 	}
 
 	// directory inaccessible due to lack of permissions
@@ -91,9 +85,12 @@ func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
 			fmt.Println(errmsg)
 		}
 		return nil, nil
+	} else if strings.Contains(dirSlice[1], "ExecParseDir: status code: 502") {
+		PrintSlice(dirSlice)
+		//p.retryDirs = append(p.retryDirs, retryDir{ReadPath: readPath, WritePath: writePath})
 	} else {
 		// check for other errors
-		check(cliError{err: err, errMsg: "Called by: downloadFile 1"})
+		check(err, "Called by: ExecParseDir 2")
 	}
 
 	// parse the returned output into files and dirs slices
@@ -130,12 +127,20 @@ func isDelimiter(str string) bool {
 	return false
 }
 
-func check(e cliError) {
-	if e.err != nil {
-		fmt.Println("\nError: ", e.err)
-		if e.errMsg != "" {
-			fmt.Println("Message: ", e.errMsg)
+func check(e error, errMsg string) {
+	if e != nil {
+		fmt.Println("\nError: ", e)
+		if errMsg != "" {
+			fmt.Println("Message: ", errMsg)
 		}
 		os.Exit(1)
 	}
+}
+
+// prints slices in readable format
+func PrintSlice(slice []string) error {
+	for index, val := range slice {
+		fmt.Println(index, ": ", val)
+	}
+	return nil
 }

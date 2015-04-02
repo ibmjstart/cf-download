@@ -68,7 +68,7 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 
 	//create dir if does not exist
 	err := os.MkdirAll(writePath, 0755)
-	check(cliError{err: err, errMsg: "Called by: download"})
+	check(err, "Called by: download")
 
 	// download each file
 	for _, val := range files {
@@ -93,7 +93,7 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 		}
 
 		err := os.MkdirAll(dirWPath, 0755)
-		check(cliError{err: err, errMsg: "Called by: download"})
+		check(err, "Called by: download")
 
 		files, dirs = d.parser.ExecParseDir(dirRPath)
 
@@ -114,7 +114,7 @@ func (d *downloader) DownloadFile(readPath, writePath string, fileDownloadGroup 
 	output, err := d.cmdExec.GetFile(d.appName, readPath, d.instance)
 	//fmt.Println(string(output))
 	err = d.WriteFile(readPath, writePath, output, err)
-	check(cliError{err: err, errMsg: "Called by: downloadFile 1 [cf files " + d.appName + " " + readPath + "]"})
+	check(err, "Called by: downloadFile 1 [cf files "+d.appName+" "+readPath+"]")
 
 	return nil
 }
@@ -143,22 +143,23 @@ func (d *downloader) CheckDownload(readPath string, file []string, err error) er
 	// check for invalid file error.
 	// some files are inaccesible from the cf files (permission issues) this is rare but we need to
 	// alert users if it occurs. It usually happens in vendor files.
+	errmsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "yellow")
+	if d.onWindows == true {
+		errmsg = " Server Error: '" + readPath + "' not downloaded"
+	}
 	if strings.Contains(file[1], "FAILED") {
-		errmsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "yellow")
-		if d.onWindows == true {
-			errmsg = " Server Error: '" + readPath + "' not downloaded"
-		}
 		d.failedDownloads = append(d.failedDownloads, errmsg)
 		if d.verbose {
 			fmt.Println(errmsg)
 		}
 		return errors.New("download failed")
-	} else if strings.Contains(file[1], "status code: 502") {
+	} else if strings.Contains(file[1], "checkDownload: status code: 502") {
 		PrintSlice(file)
+		d.failedDownloads = append(d.failedDownloads, errmsg)
 		// TODO: add these files to a retry queue and retry downloading them at the end. (see feature branch)
 	} else {
 		// check for other errors
-		check(cliError{err: err, errMsg: "Called by: CheckDownload [cf files " + d.appName + " " + readPath + "]"})
+		check(err, "Called by: CheckDownload [cf files "+d.appName+" "+readPath+"]")
 	}
 	return nil
 }
@@ -171,11 +172,12 @@ func (d *downloader) GetFailedDownloads() []string {
 	return d.failedDownloads
 }
 
-func check(e cliError) {
-	if e.err != nil {
-		fmt.Println("\nError: ", e.err)
-		if e.errMsg != "" {
-			fmt.Println("Message: ", e.errMsg)
+// error check function
+func check(e error, errMsg string) {
+	if e != nil {
+		fmt.Println("\nError: ", e)
+		if errMsg != "" {
+			fmt.Println("Message: ", errMsg)
 		}
 		os.Exit(1)
 	}
