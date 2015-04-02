@@ -36,28 +36,18 @@ import (
  */
 type downloadPlugin struct{}
 
-// error struct that allows appending error messages
-type cliError struct {
-	err    error
-	errMsg string
-}
-
 // contains flag values
 type flagVal struct {
-	Omitp_flag        *string
-	OverWritep_flag   *bool
-	MaxRoutinesp_flag *int
-	Instancep_flag    *int
-	Verbosep_flag     *bool
+	Omit_flag        string
+	OverWrite_flag   bool
+	MaxRoutines_flag int
+	Instance_flag    string
+	Verbose_flag     bool
 }
 
 var (
 	rootWorkingDirectory string
 	appName              string
-	instance             string
-	verbose              bool
-	onWindows            bool
-	omitp                bool
 	filesDownloaded      int
 	failedDownloads      []string
 	parser               dir_parser.Parser
@@ -89,80 +79,71 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 	// start time for download timer
 	start := time.Now()
-	proceed := true
 
 	// disables ansi text color on windows
-	onWindows = IsWindows()
+	onWindows := IsWindows()
 
 	if len(args) < 2 {
 		cmd := exec.Command("cf", "help", "download")
 		output, err := cmd.CombinedOutput()
-		check(cliError{err: err, errMsg: ""})
+		check(err, "")
 		fmt.Println("\nError: Missing App Name")
 		fmt.Printf("%s", output)
-		proceed = false
-	}
-
-	copyOfArgs, proceed, flagVals := ParseFlags(args, proceed)
-
-	if proceed == false {
 		os.Exit(1)
-	} else {
-		// flag variables
-		maxRoutines := *flagVals.MaxRoutinesp_flag
-		overWrite := *flagVals.OverWritep_flag
-		instance = strconv.Itoa(*flagVals.Instancep_flag)
-		verbose = *flagVals.Verbosep_flag
-		runtime.GOMAXPROCS(maxRoutines)                                   // set number of go routines
-		filterList := filter.GetFilterList(*flagVals.Omitp_flag, verbose) // get list of things to not download
-
-		workingDir, err := os.Getwd()
-		check(cliError{err: err, errMsg: "Called by: Getwd"})
-		rootWorkingDirectory, startingPath := GetDirectoryContext(workingDir, copyOfArgs)
-
-		// ensure cf_trace is disabled, otherwise parsing breaks
-		if os.Getenv("CF_TRACE") == "true" {
-			fmt.Println("\nError: environment variable CF_TRACE is set to true. This prevents download from succeeding.")
-			return
-		}
-
-		// prevent overwriting files
-		if Exists(rootWorkingDirectory) && overWrite == false {
-			fmt.Println("\nError: destination path", rootWorkingDirectory, "already Exists and is not an empty directory.\n\nDelete it or use 'cf download APP_NAME --overwrite'")
-			return
-		}
-
-		cmdExec := cmd_exec.NewCmdExec()
-		parser = dir_parser.NewParser(cmdExec, appName, instance, onWindows, verbose)
-		dloader = downloader.NewDownloader(cmdExec, &wg, appName, instance, rootWorkingDirectory, verbose, onWindows)
-
-		// parse the directory
-		files, dirs := parser.ExecParseDir(startingPath)
-
-		// stop consoleWriter
-		quit := make(chan int)
-
-		// disable consoleWriter if verbose
-		if verbose == false {
-			go consoleWriter(quit)
-		}
-
-		// Start the download
-		wg.Add(1)
-		dloader.Download(files, dirs, startingPath, rootWorkingDirectory, filterList)
-
-		// Wait for download goRoutines
-		wg.Wait()
-		fmt.Printf("Files completed: %d", filesDownloaded)
-		// stop console writer
-		if verbose == false {
-			quit <- 0
-		}
-
-		getFailedDownloads()
-		PrintCompletionInfo(start)
-
 	}
+
+	copyOfArgs, flagVals := ParseFlags(args)
+
+	// flag variables
+	runtime.GOMAXPROCS(flagVals.MaxRoutines_flag)                                 // set number of go routines
+	filterList := filter.GetFilterList(flagVals.Omit_flag, flagVals.Verbose_flag) // get list of things to not download
+
+	workingDir, err := os.Getwd()
+	check(err, "Called by: Getwd")
+	rootWorkingDirectory, startingPath := GetDirectoryContext(workingDir, copyOfArgs)
+
+	// ensure cf_trace is disabled, otherwise parsing breaks
+	if os.Getenv("CF_TRACE") == "true" {
+		fmt.Println("\nError: environment variable CF_TRACE is set to true. This prevents download from succeeding.")
+		return
+	}
+
+	// prevent overwriting files
+	if Exists(rootWorkingDirectory) && flagVals.OverWrite_flag == false {
+		fmt.Println("\nError: destination path", rootWorkingDirectory, "already Exists and is not an empty directory.\n\nDelete it or use 'cf download APP_NAME --overwrite'")
+		return
+	}
+
+	cmdExec := cmd_exec.NewCmdExec()
+	parser = dir_parser.NewParser(cmdExec, appName, flagVals.Instance_flag, onWindows, flagVals.Verbose_flag)
+	dloader = downloader.NewDownloader(cmdExec, &wg, appName, flagVals.Instance_flag, rootWorkingDirectory, flagVals.Verbose_flag, onWindows)
+
+	// parse the directory
+	files, dirs := parser.ExecParseDir(startingPath)
+
+	// stop consoleWriter
+	quit := make(chan int)
+
+	// disable consoleWriter if verbose
+	if flagVals.Verbose_flag == false {
+		go consoleWriter(quit)
+	}
+
+	// Start the download
+	wg.Add(1)
+	dloader.Download(files, dirs, startingPath, rootWorkingDirectory, filterList)
+
+	// Wait for download goRoutines
+	wg.Wait()
+	fmt.Printf("Files completed: %d", filesDownloaded)
+	// stop console writer
+	if flagVals.Verbose_flag == false {
+		quit <- 0
+	}
+
+	getFailedDownloads()
+	PrintCompletionInfo(start, onWindows)
+
 }
 
 /*
@@ -189,15 +170,13 @@ func GetDirectoryContext(workingDir string, copyOfArgs []string) (string, string
 			startingPath = strings.TrimPrefix(startingPath, "/")
 		}
 		rootWorkingDirectory += startingPath
-		if !strings.HasPrefix(startingPath, "/") {
-			startingPath = "/" + startingPath
-		}
+		startingPath = "/" + startingPath
 	}
 
 	return rootWorkingDirectory, startingPath
 }
 
-func ParseFlags(args []string, proceed bool) ([]string, bool, flagVal) {
+func ParseFlags(args []string) ([]string, flagVal) {
 
 	// Create flagSet f1
 	f1 := flag.NewFlagSet("f1", flag.ContinueOnError)
@@ -226,7 +205,7 @@ func ParseFlags(args []string, proceed bool) ([]string, bool, flagVal) {
 	appName = copyOfArgs[1]
 	if strings.HasPrefix(appName, "-") || strings.HasPrefix(appName, "--") {
 		fmt.Println("\nError: App name begins with '-' or '--'. correct flag usage: 'cf download APP_NAME [--flags]'")
-		proceed = false
+		os.Exit(1)
 	}
 
 	// Check for parsing errors
@@ -234,20 +213,20 @@ func ParseFlags(args []string, proceed bool) ([]string, bool, flagVal) {
 		fmt.Println("\nError: ", err, "\n")
 		cmd := exec.Command("cf", "help", "download")
 		output, err := cmd.CombinedOutput()
-		check(cliError{err: err, errMsg: ""})
+		check(err, "")
 		fmt.Printf("%s", output)
-		proceed = false
+		os.Exit(1)
 	}
 
 	flagVals := flagVal{
-		Omitp_flag:        omitp,
-		OverWritep_flag:   overWritep,
-		MaxRoutinesp_flag: maxRoutinesp,
-		Instancep_flag:    instancep,
-		Verbosep_flag:     verbosep,
+		Omit_flag:        string(*omitp),
+		OverWrite_flag:   bool(*overWritep),
+		MaxRoutines_flag: *maxRoutinesp,
+		Instance_flag:    strconv.Itoa(*instancep),
+		Verbose_flag:     *verbosep,
 	}
 
-	return copyOfArgs, proceed, flagVals
+	return copyOfArgs, flagVals
 }
 
 /*
@@ -278,7 +257,7 @@ func consoleWriter(quit chan int) {
 }
 
 // prints all the info you see at program finish
-func PrintCompletionInfo(start time.Time) {
+func PrintCompletionInfo(start time.Time, onWindows bool) {
 	// let user know if any files were inaccessible
 	if len(failedDownloads) == 1 {
 		fmt.Println("")
@@ -304,11 +283,11 @@ func PrintCompletionInfo(start time.Time) {
 }
 
 // error check function
-func check(e cliError) {
-	if e.err != nil {
-		fmt.Println("\nError: ", e.err)
-		if e.errMsg != "" {
-			fmt.Println("Message: ", e.errMsg)
+func check(e error, errMsg string) {
+	if e != nil {
+		fmt.Println("\nError: ", e)
+		if errMsg != "" {
+			fmt.Println("Message: ", errMsg)
 		}
 		os.Exit(1)
 	}
@@ -323,7 +302,7 @@ func PrintSlice(slice []string) error {
 }
 
 func IsWindows() bool {
-	return os.PathSeparator == '\\' && os.PathListSeparator == ';'
+	return runtime.GOOS == "windows"
 }
 
 // Exists returns whether the given file or directory Exists or not
@@ -335,7 +314,7 @@ func Exists(path string) bool {
 	if os.IsNotExist(err) {
 		return false
 	}
-	check(cliError{err: err, errMsg: "Called by: Exists"})
+	check(err, "Called by: Exists")
 	return false
 }
 

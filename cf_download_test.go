@@ -17,80 +17,80 @@ var _ = Describe("CfDownload", func() {
 	Describe("Test Flag functionality", func() {
 
 		Context("Check if overWrite flag works", func() {
-			It("Should set the overwritep_flag", func() {
+			It("Should set the overwrite_flag", func() {
 				args[0] = "download"
 				args[1] = "app"
 				args[2] = "--overwrite"
 
-				_, _, flagVals := ParseFlags(args, true)
-				Expect(*flagVals.MaxRoutinesp_flag).To(Equal(200))
-				Expect(*flagVals.OverWritep_flag).To(BeTrue())
-				Expect(*flagVals.Instancep_flag).To(Equal(0))
-				Expect(*flagVals.Verbosep_flag).To(BeFalse())
-				Expect(*flagVals.Omitp_flag).To(Equal(""))
+				_, flagVals := ParseFlags(args)
+				Expect(flagVals.MaxRoutines_flag).To(Equal(200))
+				Expect(flagVals.OverWrite_flag).To(BeTrue())
+				Expect(flagVals.Instance_flag).To(Equal("0"))
+				Expect(flagVals.Verbose_flag).To(BeFalse())
+				Expect(flagVals.Omit_flag).To(Equal(""))
 			})
 		})
 
 		Context("Check if verbose flag works", func() {
-			It("Should set the verbosep_flag", func() {
+			It("Should set the verbose_flag", func() {
 				args[0] = "download"
 				args[1] = "app"
 				args[2] = "--verbose"
 
-				_, _, flagVals := ParseFlags(args, true)
-				Expect(*flagVals.MaxRoutinesp_flag).To(Equal(200))
-				Expect(*flagVals.OverWritep_flag).To(BeFalse())
-				Expect(*flagVals.Instancep_flag).To(Equal(0))
-				Expect(*flagVals.Verbosep_flag).To(BeTrue())
-				Expect(*flagVals.Omitp_flag).To(Equal(""))
+				_, flagVals := ParseFlags(args)
+				Expect(flagVals.MaxRoutines_flag).To(Equal(200))
+				Expect(flagVals.OverWrite_flag).To(BeFalse())
+				Expect(flagVals.Instance_flag).To(Equal("0"))
+				Expect(flagVals.Verbose_flag).To(BeTrue())
+				Expect(flagVals.Omit_flag).To(Equal(""))
 			})
 		})
 
 		Context("Check if Routines flag works", func() {
-			It("Should set the maxRoutinesp_flag", func() {
+			It("Should set the maxRoutines_flag", func() {
 				args[0] = "download"
 				args[1] = "app"
 				args[2] = "--routines"
 				args[3] = "555"
 
-				_, _, flagVals := ParseFlags(args, true)
-				Expect(*flagVals.MaxRoutinesp_flag).To(Equal(555))
-				Expect(*flagVals.OverWritep_flag).To(BeFalse())
-				Expect(*flagVals.Instancep_flag).To(Equal(0))
-				Expect(*flagVals.Verbosep_flag).To(BeFalse())
-				Expect(*flagVals.Omitp_flag).To(Equal(""))
+				_, flagVals := ParseFlags(args)
+				Expect(flagVals.MaxRoutines_flag).To(Equal(555))
+				Expect(flagVals.OverWrite_flag).To(BeFalse())
+				Expect(flagVals.Instance_flag).To(Equal("0"))
+				Expect(flagVals.Verbose_flag).To(BeFalse())
+				Expect(flagVals.Omit_flag).To(Equal(""))
 			})
 		})
 
 		Context("Check if instance (i) flag works", func() {
-			It("Should set the instancep_flag", func() {
+			It("Should set the instance_flag", func() {
 				args[0] = "download"
 				args[1] = "app"
 				args[2] = "--i"
 				args[3] = "3"
 
-				_, _, flagVals := ParseFlags(args, true)
-				Expect(*flagVals.MaxRoutinesp_flag).To(Equal(200))
-				Expect(*flagVals.OverWritep_flag).To(BeFalse())
-				Expect(*flagVals.Instancep_flag).To(Equal(3))
-				Expect(*flagVals.Verbosep_flag).To(BeFalse())
-				Expect(*flagVals.Omitp_flag).To(Equal(""))
+				_, flagVals := ParseFlags(args)
+				Expect(flagVals.MaxRoutines_flag).To(Equal(200))
+				Expect(flagVals.OverWrite_flag).To(BeFalse())
+				Expect(flagVals.Instance_flag).To(Equal("3"))
+				Expect(flagVals.Verbose_flag).To(BeFalse())
+				Expect(flagVals.Omit_flag).To(Equal(""))
 			})
 		})
 
 		Context("Check if omit flag works", func() {
-			It("Should set the omitp_flag", func() {
+			It("Should set the omit_flag", func() {
 				args[0] = "download"
 				args[1] = "app"
 				args[2] = "--omit"
 				args[3] = "app/node_modules"
 
-				_, _, flagVals := ParseFlags(args, true)
-				Expect(*flagVals.MaxRoutinesp_flag).To(Equal(200))
-				Expect(*flagVals.OverWritep_flag).To(BeFalse())
-				Expect(*flagVals.Instancep_flag).To(Equal(0))
-				Expect(*flagVals.Verbosep_flag).To(BeFalse())
-				Expect(*flagVals.Omitp_flag).To(Equal("app/node_modules"))
+				_, flagVals := ParseFlags(args)
+				Expect(flagVals.MaxRoutines_flag).To(Equal(200))
+				Expect(flagVals.OverWrite_flag).To(BeFalse())
+				Expect(flagVals.Instance_flag).To(Equal("0"))
+				Expect(flagVals.Verbose_flag).To(BeFalse())
+				Expect(flagVals.Omit_flag).To(Equal("app/node_modules"))
 			})
 		})
 
@@ -112,25 +112,51 @@ var _ = Describe("CfDownload", func() {
 				Expect(startingPath).To(Equal("/app/src/node/"))
 			})
 		})
-	})
-
-	Describe("Test getDirectoryContext", func() {
-		Context("when directory exists", func() {
-			It("Should be true", func() {
+		Context("test target directory parsing", func() {
+			It("should still return /app/src/node/ for startingPath", func() {
+				args[0] = "download"
+				args[1] = "app_name"
+				args[2] = "/app/src/node/"
+				args[3] = "--verbose"
 				currentDirectory, _ := os.Getwd()
-				Expect(Exists(currentDirectory)).To(BeTrue())
+				rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
+
+				correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+
+				Expect(correctSuffix).To(BeTrue())
+				Expect(startingPath).To(Equal("/app/src/node/"))
+			})
+		})
+		Context("test target directory parsing", func() {
+			It("should still return /app/src/node/ for startingPath", func() {
+				args[0] = "download"
+				args[1] = "app_name"
+				args[2] = "app/src/node/"
+				args[3] = "--verbose"
+				currentDirectory, _ := os.Getwd()
+				rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
+
+				correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+
+				Expect(correctSuffix).To(BeTrue())
+				Expect(startingPath).To(Equal("/app/src/node/"))
+			})
+		})
+		Context("test target directory parsing", func() {
+			It("should still return /app/src/node/ for startingPath", func() {
+				args[0] = "download"
+				args[1] = "app_name"
+				args[2] = "/app/src/node"
+				args[3] = "--verbose"
+				currentDirectory, _ := os.Getwd()
+				rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
+
+				correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+
+				Expect(correctSuffix).To(BeTrue())
+				Expect(startingPath).To(Equal("/app/src/node/"))
 			})
 		})
 	})
 
-})
-
-//full integration test
-var _ = Describe("CfDownload full integration", func() {
-	Context("cf download ", func() {
-		It("Should be true", func() {
-			currentDirectory, _ := os.Getwd()
-			Expect(Exists(currentDirectory)).To(BeTrue())
-		})
-	})
 })
