@@ -40,6 +40,7 @@ func NewParser(cmdExec cmd_exec.CmdExec, appName, instance string, onWindows, ve
 *	contains the names of directories in readPath, files contians the file names. dirs and files are returned
 * 	to be downloaded by download() and downloadFile() respectively.
  */
+
 func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
 
 	// make the cf files call using exec
@@ -48,49 +49,39 @@ func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
 
 	// check for invalid or missing app
 	if strings.Contains(dirSlice[1], "not found") {
-		errmsg := ansi.Color("Error: "+p.appName+" app not found (check space and org)", "red+b")
-		if p.onWindows == true {
-			errmsg = "Error: " + p.appName + " app not found (check space and org)"
-		}
-		fmt.Println(errmsg)
+		fmt.Println(createMessage("Error: "+p.appName+" app not found (check space and org)", "red+b", p.onWindows))
 	}
 
 	// p usually gets called when an app is not running and you attempt to download it.
 	dir := dirSlice[2]
 	if strings.Contains(dir, "error code: 190001") {
-		errmsg := ansi.Color("App not found, or the app is in stopped state (This can also be caused by api failure)", "red+b")
-		if p.onWindows == true {
-			errmsg = "App not found, or the app is in stopped state (This can also be caused by api failure)"
-		}
-		fmt.Println(errmsg)
-		check(err, "App not found")
+		fmt.Println(createMessage("App not found, or the app is in stopped state (This can also be caused by api failure)", "red+b", p.onWindows))
+		check(err, "")
 	}
 
 	// handle an empty directory
 	if strings.Contains(dir, "No files found") {
 		return nil, nil
 	} else {
-		//check(cliError{err: err, errMsg:"Directory or file not found. Check filename or path on command line"})
-		check(err, "Called by: ExecParseDir 1 [cf files "+p.appName+" "+readPath+"]")
+		check(err, "Error E1: failed to read directory")
 	}
 
 	// directory inaccessible due to lack of permissions
 	if strings.Contains(dirSlice[1], "FAILED") {
-		errmsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "yellow")
-		if p.onWindows == true {
-			errmsg = " Server Error: '" + readPath + "' not downloaded"
-		}
-		p.failedDownloads = append(p.failedDownloads, errmsg)
+		messsage := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", p.onWindows)
+
+		p.failedDownloads = append(p.failedDownloads, messsage)
+
 		if p.verbose {
-			fmt.Println(errmsg)
+			fmt.Println(messsage)
 		}
 		return nil, nil
-	} else if strings.Contains(dirSlice[1], "ExecParseDir: status code: 502") {
+	} else if strings.Contains(dirSlice[1], "status code: 502") {
 		PrintSlice(dirSlice)
 		//p.retryDirs = append(p.retryDirs, retryDir{ReadPath: readPath, WritePath: writePath})
 	} else {
 		// check for other errors
-		check(err, "Called by: ExecParseDir 2")
+		check(err, "Error E1: failed to read directory")
 	}
 
 	// parse the returned output into files and dirs slices
@@ -143,4 +134,13 @@ func PrintSlice(slice []string) error {
 		fmt.Println(index, ": ", val)
 	}
 	return nil
+}
+
+func createMessage(message, color string, onWindows bool) string {
+	errmsg := ansi.Color(message, color)
+	if onWindows == true {
+		errmsg = message
+	}
+
+	return errmsg
 }

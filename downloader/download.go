@@ -68,7 +68,7 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 
 	//create dir if does not exist
 	err := os.MkdirAll(writePath, 0755)
-	check(err, "Called by: download")
+	check(err, "Error D1: failed to create directory.")
 
 	// download each file
 	for _, val := range files {
@@ -93,7 +93,7 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 		}
 
 		err := os.MkdirAll(dirWPath, 0755)
-		check(err, "Called by: download")
+		check(err, "Error D2: failed to create directory.")
 
 		files, dirs = d.parser.ExecParseDir(dirRPath)
 
@@ -114,7 +114,7 @@ func (d *downloader) DownloadFile(readPath, writePath string, fileDownloadGroup 
 	output, err := d.cmdExec.GetFile(d.appName, readPath, d.instance)
 	//fmt.Println(string(output))
 	err = d.WriteFile(readPath, writePath, output, err)
-	check(err, "Called by: downloadFile 1 [cf files "+d.appName+" "+readPath+"]")
+	check(err, "Error DF1: failed to read directory")
 
 	return nil
 }

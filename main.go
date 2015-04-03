@@ -308,7 +308,7 @@ func Exists(path string) bool {
 	if os.IsNotExist(err) {
 		return false
 	}
-	check(err, "Called by: Exists")
+	check(err, "Error E0.")
 	return false
 }
 

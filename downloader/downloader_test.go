@@ -25,6 +25,11 @@ var _ = Describe("Downloader tests", func() {
 	cmdExec = cmd_exec_fake.NewCmdExec()
 	d = NewDownloader(cmdExec, &wg, "appName", "0", "rootWorkingDirectory", false, false)
 
+	AfterEach(func() {
+		os.RemoveAll("testFiles/test1.txt")
+		os.RemoveAll("testFiles/test2.txt")
+	})
+
 	// downloadfile also tests the following functions
 	// WriteFile(), CheckDownload()
 	Describe("Test DownloadFile function", func() {
@@ -39,14 +44,7 @@ var _ = Describe("Downloader tests", func() {
 				fileContents, err := ioutil.ReadFile(writePath)
 				Ω(err).To(BeNil())
 				Ω(string(fileContents)).To(Equal("Hello World"))
-			})
-		})
-	})
-
-	Describe("Test DownloadFile() function", func() {
-		Context("download and create a file containing only 'helloWorld'", func() {
-			It("create test2.txt", func() {
-				writePath := currentDirectory + "/testFiles/test2.txt"
+				writePath = currentDirectory + "/testFiles/test2.txt"
 				cmdExec.SetOutput("Getting files for app payToWin in org jstart / space koldus as email@us.ibm.com...\nOK\nLorem ipsum is a pseudo-Latin text used in web design, typography, layout, and printing in place of English to emphasise design elements over content. It's also called placeholder (or filler) text. It's a convenient tool for mock-ups. It helps to outline the visual elements of a document or presentation, eg typography, font, or layout. Lorem ipsum is mostly a part of a Latin text by the classical author and philosopher Cicero. Its words and letters have been changed by addition or removal, so to deliberately render its content nonsensical; it's not genuine, correct, or comprehensible Latin anymore. While lorem ipsum's still resembles classical Latin, it actually has no meaning whatsoever. As Cicero's text doesn't contain the letters K, W, or Z, alien to latin, these, and others are often inserted randomly to mimic the typographic appearence of European languages, as are digraphs not to be found in the original.")
 				wg.Add(1)
 				go d.DownloadFile("", writePath, &wg)
@@ -140,8 +138,6 @@ var _ = Describe("Downloader tests", func() {
 				Ω(rootContents[1].Name()).To(Equal("ignore.go"))
 				Ω(rootContents[2].Name()).To(Equal("ignoreDir"))
 				Ω(rootContents[3].Name()).To(Equal("notignored.go"))
-				Ω(rootContents[4].Name()).To(Equal("test1.txt"))
-				Ω(rootContents[5].Name()).To(Equal("test2.txt"))
 
 				// test the contents of the app_contents directory
 				Ω(rootContents[0].IsDir()).To(BeTrue())
@@ -184,8 +180,6 @@ var _ = Describe("Downloader tests", func() {
 				rootContents, _ := rootFile.Readdir(0)
 				Ω(rootContents[0].Name()).To(Equal("app_content"))
 				Ω(rootContents[1].Name()).To(Equal("notignored.go"))
-				Ω(rootContents[2].Name()).To(Equal("test1.txt"))
-				Ω(rootContents[3].Name()).To(Equal("test2.txt"))
 
 				// test the contents of the app_contents directory
 				Ω(rootContents[0].IsDir()).To(BeTrue())

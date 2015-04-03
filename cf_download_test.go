@@ -12,7 +12,11 @@ import (
 
 // unit tests of individual functions
 var _ = Describe("CfDownload", func() {
-	args := make([]string, 7)
+	var args []string
+
+	BeforeEach(func() {
+		args = make([]string, 7)
+	})
 
 	Describe("Test Flag functionality", func() {
 
@@ -20,7 +24,8 @@ var _ = Describe("CfDownload", func() {
 			It("Should set the overwrite_flag", func() {
 				args[0] = "download"
 				args[1] = "app"
-				args[2] = "--overwrite"
+				args[2] = "app/files/htdocs"
+				args[3] = "--overwrite"
 
 				flagVals := ParseFlags(args)
 				Expect(flagVals.MaxRoutines_flag).To(Equal(200))
@@ -50,8 +55,9 @@ var _ = Describe("CfDownload", func() {
 			It("Should set the maxRoutines_flag", func() {
 				args[0] = "download"
 				args[1] = "app"
-				args[2] = "--routines"
-				args[3] = "555"
+				args[2] = "files/in/the/app"
+				args[3] = "--routines"
+				args[4] = "555"
 
 				flagVals := ParseFlags(args)
 				Expect(flagVals.MaxRoutines_flag).To(Equal(555))
@@ -96,7 +102,7 @@ var _ = Describe("CfDownload", func() {
 
 	})
 
-	Describe("Check if current Directory exists", func() {
+	Describe("test directoryContext parsing", func() {
 		Context("when directory exists", func() {
 			It("Should return correct strings", func() {
 				args[0] = "download"
