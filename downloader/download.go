@@ -143,10 +143,8 @@ func (d *downloader) CheckDownload(readPath string, file []string, err error) er
 	// check for invalid file error.
 	// some files are inaccesible from the cf files (permission issues) this is rare but we need to
 	// alert users if it occurs. It usually happens in vendor files.
-	errmsg := ansi.Color(" Server Error: '"+readPath+"' not downloaded", "yellow")
-	if d.onWindows == true {
-		errmsg = " Server Error: '" + readPath + "' not downloaded"
-	}
+	errMsg := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", d.onWindows)
+
 	if strings.Contains(file[1], "FAILED") {
 		d.failedDownloads = append(d.failedDownloads, errmsg)
 		if d.verbose {
@@ -189,4 +187,13 @@ func PrintSlice(slice []string) error {
 		fmt.Println(index, ": ", val)
 	}
 	return nil
+}
+
+func createMessage(message, color string, onWindows bool) string {
+	errmsg := ansi.Color(message, color)
+	if onWindows == true {
+		errmsg = message
+	}
+
+	return errmsg
 }
