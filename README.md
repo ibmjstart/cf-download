@@ -19,7 +19,7 @@
 
 ## Usage
 
-cf download APP_NAME [PATH] [--overwrite] [--verbose] [--omit omitted_path] [--routines max_routines] [-i instance]
+cf download APP_NAME [PATH] [--overwrite] [--verbose] [--omit omitted_path] [-i instance]
 
 The downloaded app files will put put in a new directory "APP_NAME-download" that's created within your working directory.
 
@@ -30,7 +30,6 @@ The path argument is optional but if included, should come immediately after the
 1. The **--overwrite** flag is needed if the download directory, "APP_NAME-download", is already taken. Using the flag, that directory will be overwritten.
 2. The **--verbose** flag is used to see more detailed output as the downloads are happening.
 3. The **--omit [omitted_path]** flag is useful when certain files or directories are not wanted. You can exclude a file by typing **--omit path/to/file**. Multiple things can be omitted by delimiting the paths with semicolons and putting quotes around the entire parameter like so: **--omit "path/to/file; another/path/to/file"**
-4. The **--routines [max_routines]** flag sets the number of subroutines the program will use to concurrently fetch the files. By default, this number is 200.
 5. The **-i [instance]** flag will download from the given app instance. By default, the instance number is 0.
 
 ***
@@ -50,9 +49,6 @@ Composer is a popular PHP package manager that installs dependencies to a folder
 ***
 
 ## Notes and FAQ:  
-#### Limiting Resources:  
-The download plugin is concurrent and can use up a lot of cpu power. You can reduce the max number of concurrent routines with the --routines flag. Reducing the number of routines reduces the CPU load at a slight cost to speed.
-
 #### .cfignore:
 All directories and files within the .cfignore file will be omitted. Each entry should be on its own line and that the .cfignore file must be in the same working directory. Instead of using many --omit parameters, it's easier to use the .cfignore file.
 
