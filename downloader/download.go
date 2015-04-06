@@ -146,14 +146,14 @@ func (d *downloader) CheckDownload(readPath string, file []string, err error) er
 	errMsg := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", d.onWindows)
 
 	if strings.Contains(file[1], "FAILED") {
-		d.failedDownloads = append(d.failedDownloads, errmsg)
+		d.failedDownloads = append(d.failedDownloads, errMsg)
 		if d.verbose {
-			fmt.Println(errmsg)
+			fmt.Println(errMsg)
 		}
 		return errors.New("download failed")
 	} else if strings.Contains(file[1], "checkDownload: status code: 502") {
 		PrintSlice(file)
-		d.failedDownloads = append(d.failedDownloads, errmsg)
+		d.failedDownloads = append(d.failedDownloads, errMsg)
 		// TODO: add these files to a retry queue and retry downloading them at the end. (see feature branch)
 	} else {
 		// check for other errors
