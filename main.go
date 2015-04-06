@@ -38,11 +38,10 @@ type downloadPlugin struct{}
 
 // contains flag values
 type flagVal struct {
-	Omit_flag        string
-	OverWrite_flag   bool
-	MaxRoutines_flag int
-	Instance_flag    string
-	Verbose_flag     bool
+	Omit_flag      string
+	OverWrite_flag bool
+	Instance_flag  string
+	Verbose_flag   bool
 }
 
 var (
@@ -95,7 +94,6 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	flagVals := ParseFlags(args)
 
 	// flag variables
-	runtime.GOMAXPROCS(flagVals.MaxRoutines_flag)                                 // set number of go routines
 	filterList := filter.GetFilterList(flagVals.Omit_flag, flagVals.Verbose_flag) // get list of things to not download
 
 	workingDir, err := os.Getwd()
@@ -141,9 +139,6 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		quit <- 0
 	}
 
-	fmt.Printf("\r\t")
-	fmt.Printf("Files completed: %d", filesDownloaded)
-
 	getFailedDownloads()
 	PrintCompletionInfo(start, onWindows)
 
@@ -187,11 +182,11 @@ func ParseFlags(args []string) flagVal {
 	// Create flags
 	omitp := f1.String("omit", "", "--omit path/to/some/file")
 	overWritep := f1.Bool("overwrite", false, "--overwrite")
-	maxRoutinesp := f1.Int("routines", 200, "--routines [numOfRoutines]")
 	instancep := f1.Int("i", 0, "-i [instanceNum]")
 	verbosep := f1.Bool("verbose", false, "--verbose")
 
-	// need to copy args[] for later as they will be overwritten
+	// need to copy args[] for later as they will be overwritten when we append them to os.Args
+	// they are apparently pointers
 	copyOfArgs := make([]string, len(args))
 	for i := 0; i < len(args); i++ {
 		copyOfArgs[i] = args[i]
@@ -221,11 +216,10 @@ func ParseFlags(args []string) flagVal {
 	}
 
 	flagVals := flagVal{
-		Omit_flag:        string(*omitp),
-		OverWrite_flag:   bool(*overWritep),
-		MaxRoutines_flag: *maxRoutinesp,
-		Instance_flag:    strconv.Itoa(*instancep),
-		Verbose_flag:     *verbosep,
+		Omit_flag:      string(*omitp),
+		OverWrite_flag: bool(*overWritep),
+		Instance_flag:  strconv.Itoa(*instancep),
+		Verbose_flag:   *verbosep,
 	}
 
 	return flagVals
@@ -238,11 +232,13 @@ func ParseFlags(args []string) flagVal {
 func consoleWriter(quit chan int) {
 	count := 0
 	for {
+		filesDownloaded := dloader.GetFilesDownloadedCount()
 		select {
 		case <-quit:
+			fmt.Printf("\rFiles completed: %d ", filesDownloaded)
 			return
 		default:
-			filesDownloaded := dloader.GetFilesDownloadedCount()
+
 			switch count = (count + 1) % 4; count {
 			case 0:
 				fmt.Printf("\rFiles completed: %d \\ ", filesDownloaded)
@@ -350,13 +346,12 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 				// UsageDetails is optional
 				// It is used to show help of usage of each command
 				UsageDetails: plugin.Usage{
-					Usage: "cf download APP_NAME [PATH] [--overwrite] [--verbose] [--omit ommited_paths] [--routines num_max_routines] [-i instance_num]",
+					Usage: "cf download APP_NAME [PATH] [--overwrite] [--verbose] [--omit ommited_paths] [-i instance_num]",
 					Options: map[string]string{
 						"overwrite":             "Overwrite existing files",
 						"verbose":               "Verbose output",
 						"omit \"path/to/file\"": "Omit directories or files delimited by semicolons",
-						"routines":              "Max number of concurrent subroutines (default 200)",
-						"i":                     "Instance",
+						"i": "Instance",
 					},
 				},
 			},
