@@ -135,11 +135,14 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 	// Wait for download goRoutines
 	wg.Wait()
-	fmt.Printf("Files completed: %d", filesDownloaded)
+
 	// stop console writer
 	if flagVals.Verbose_flag == false {
 		quit <- 0
 	}
+
+	fmt.Printf("\r\t")
+	fmt.Printf("Files completed: %d", filesDownloaded)
 
 	getFailedDownloads()
 	PrintCompletionInfo(start, onWindows)
@@ -188,6 +191,13 @@ func ParseFlags(args []string) flagVal {
 	instancep := f1.Int("i", 0, "-i [instanceNum]")
 	verbosep := f1.Bool("verbose", false, "--verbose")
 
+	// need to copy args[] for later as they will be overwritten
+	copyOfArgs := make([]string, len(args))
+	for i := 0; i < len(args); i++ {
+		copyOfArgs[i] = args[i]
+	}
+
+	//we can just f1.Parse(args[1:]), no need to deal with os.Args
 	// flag package parses os.Args so we need to set it correctly
 	if len(args) > 2 && !strings.HasPrefix(args[2], "-") { // if there is a path as in 'cf download path' vs. 'cf download'
 		os.Args = append(os.Args[:1], args[3:]...)
@@ -196,10 +206,9 @@ func ParseFlags(args []string) flagVal {
 	}
 
 	// check for misplaced flags
-	appName = args[1]
+	appName = copyOfArgs[1]
 	if strings.HasPrefix(appName, "-") || strings.HasPrefix(appName, "--") {
 		fmt.Println("\nError: App name begins with '-' or '--'. correct flag usage: 'cf download APP_NAME [--flags]'")
-		os.Exit(1)
 	}
 
 	// Check for parsing errors
@@ -209,7 +218,6 @@ func ParseFlags(args []string) flagVal {
 		output, err := cmd.CombinedOutput()
 		check(err, "")
 		fmt.Printf("%s", output)
-		os.Exit(1)
 	}
 
 	flagVals := flagVal{

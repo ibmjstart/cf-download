@@ -46,4 +46,27 @@ var _ = Describe("DirParser", func() {
 			Ω(directories[2]).To(Equal("node_modules/"))
 		})
 	})
+
+	Describe("Test GetDirectory()", func() {
+		It("test when app is not found", func() {
+			cmdExec.SetOutput("Getting files for app\nFAILED\nApp APP_NAME not found")
+			_, status := p.GetDirectory("")
+			Ω(status).To(Equal("Failed"))
+		})
+		It("test empty directory", func() {
+			cmdExec.SetOutput("Getting files for app\nOK\nNo files found")
+			_, status := p.GetDirectory("")
+			Ω(status).To(Equal("noFiles"))
+		})
+		It("test when app is stopped", func() {
+			cmdExec.SetOutput("Getting files for app\nFAILED\nerror code: 190001")
+			_, status := p.GetDirectory("")
+			Ω(status).To(Equal("appUnavailable"))
+		})
+		It("test when 502 error occurs", func() {
+			cmdExec.SetOutput("Getting files for app\nstatus code: 502\n ")
+			_, status := p.GetDirectory("")
+			Ω(status).To(Equal("502"))
+		})
+	})
 })

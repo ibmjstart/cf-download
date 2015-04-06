@@ -2,17 +2,17 @@ package dir_parser
 
 import (
 	"fmt"
+	"github.com/ibmjstart/cf-download/cmd_exec"
+	"github.com/mgutz/ansi"
 	"os"
 	"regexp"
 	"strings"
-
-	"github.com/ibmjstart/cf-download/cmd_exec"
-	"github.com/mgutz/ansi"
 )
 
 type Parser interface {
 	ExecParseDir(readPath string) ([]string, []string)
 	GetFailedDownloads() []string
+	GetDirectory(readPath string) (string, string)
 }
 
 type parser struct {
@@ -40,8 +40,51 @@ func NewParser(cmdExec cmd_exec.CmdExec, appName, instance string, onWindows, ve
 *	contains the names of directories in readPath, files contians the file names. dirs and files are returned
 * 	to be downloaded by download() and downloadFile() respectively.
  */
-
 func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
+	dir, status := p.GetDirectory(readPath)
+
+	if status == "OK" {
+		// parse the returned output into files and dirs slices
+		filesSlice := strings.Fields(dir)
+		var files, dirs []string
+		var name string
+		for i := 0; i < len(filesSlice); i++ {
+			if strings.HasSuffix(filesSlice[i], "/") {
+				name += filesSlice[i]
+				dirs = append(dirs, name)
+				name = ""
+			} else if isDelimiter(filesSlice[i]) {
+				if len(name) > 0 {
+					name = strings.TrimSuffix(name, " ")
+					files = append(files, name)
+				}
+				name = ""
+			} else {
+				name += filesSlice[i] + " "
+			}
+		}
+		return files, dirs
+	} else if status == "noFiles" || status == "502" || status == "appUnavailable" {
+		if len(dir) > 0 {
+			fmt.Println(dir)
+		}
+		return nil, nil
+	} else {
+		//error occured, error message displayed by GetDirectory()
+		if len(dir) > 0 {
+			fmt.Println(dir)
+		}
+		os.Exit(1)
+	}
+
+	return nil, nil
+}
+
+/*
+*	getDirectory will return the directory as a string ready for parsing.
+*	There is a status code returned as well, this is not necessary but helps with testing.
+ */
+func (p *parser) GetDirectory(readPath string) (string, string) {
 
 	// make the cf files call using exec
 	output, err := p.cmdExec.GetFile(p.appName, readPath, p.instance)
@@ -49,19 +92,20 @@ func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
 
 	// check for invalid or missing app
 	if strings.Contains(dirSlice[1], "not found") {
-		fmt.Println(createMessage("Error: "+p.appName+" app not found (check space and org)", "red+b", p.onWindows))
+		errorMsg := createMessage("Error: "+p.appName+" app not found (check space and org)", "red+b", p.onWindows)
+		return errorMsg, "notFound"
 	}
 
 	// p usually gets called when an app is not running and you attempt to download it.
 	dir := dirSlice[2]
 	if strings.Contains(dir, "error code: 190001") {
-		fmt.Println(createMessage("App not found, or the app is in stopped state (This can also be caused by api failure)", "red+b", p.onWindows))
-		check(err, "")
+		errorMsg := createMessage("App not found, or the app is in stopped state (This can also be caused by api failure)", "red+b", p.onWindows)
+		return errorMsg, "appUnavailable"
 	}
 
 	// handle an empty directory
 	if strings.Contains(dir, "No files found") {
-		return nil, nil
+		return "", "noFiles"
 	} else {
 		check(err, "Error E1: failed to read directory")
 	}
@@ -75,35 +119,17 @@ func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
 		if p.verbose {
 			fmt.Println(messsage)
 		}
-		return nil, nil
+		return "", "Failed"
 	} else if strings.Contains(dirSlice[1], "status code: 502") {
-		PrintSlice(dirSlice)
+		return dirSlice[1], "502"
+		// if 502 errors become an issue we should give users more information at this point
+
 		//p.retryDirs = append(p.retryDirs, retryDir{ReadPath: readPath, WritePath: writePath})
 	} else {
 		// check for other errors
 		check(err, "Error E1: failed to read directory")
 	}
-
-	// parse the returned output into files and dirs slices
-	filesSlice := strings.Fields(dir)
-	var files, dirs []string
-	var name string
-	for i := 0; i < len(filesSlice); i++ {
-		if strings.HasSuffix(filesSlice[i], "/") {
-			name += filesSlice[i]
-			dirs = append(dirs, name)
-			name = ""
-		} else if isDelimiter(filesSlice[i]) {
-			if len(name) > 0 {
-				name = strings.TrimSuffix(name, " ")
-				files = append(files, name)
-			}
-			name = ""
-		} else {
-			name += filesSlice[i] + " "
-		}
-	}
-	return files, dirs
+	return dir, "OK"
 }
 
 func (p *parser) GetFailedDownloads() []string {

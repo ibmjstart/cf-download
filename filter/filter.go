@@ -18,14 +18,16 @@ func GetFilterList(omitString string, verbose bool) []string {
 	} else {
 		lines := strings.Split(string(content), "\n") // get each line in .cfignore
 
-		if verbose && len(lines) > 0 {
+		if verbose && len(lines) > 1 {
 			fmt.Println("[ Info: using .cfignore ] \nContents: ")
 			for _, val := range lines {
 				fmt.Println(val)
 			}
 			fmt.Println("")
 		} else if len(lines) > 0 {
-			fmt.Println("[ Info: using .cfignore ]")
+			if lines[0] != "" {
+				fmt.Println("[ Info: using .cfignore ]")
+			}
 		}
 
 		filterList = append(filterList, lines[0:]...)
@@ -68,4 +70,12 @@ func CheckToFilter(appPath, rootWorkingDirectory string, filterList []string) bo
 	}
 
 	return false
+}
+
+// prints slices in readable format
+func PrintSlice(slice []string) error {
+	for index, val := range slice {
+		fmt.Println(index, ": ", val)
+	}
+	return nil
 }
