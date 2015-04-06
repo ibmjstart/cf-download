@@ -57,14 +57,12 @@ func GetFilterList(omitString string, verbose bool) []string {
 	return returnList
 }
 
-func CheckToFilter(appPath, rootWorkingDirectory string, filterList []string) bool {
-	appPath = strings.TrimSuffix(appPath, "/")
-	comparePath1 := strings.TrimPrefix(appPath, rootWorkingDirectory)
-	/*fmt.Println("\nCompareTo:	   ", comparePath1)*/
+func CheckToFilter(filePath string, filterList []string) bool {
+
 	for _, item := range filterList {
 
 		// ignore files in ignore list and the cfignore file
-		if comparePath1 == item {
+		if filePath == item {
 			return true
 		}
 	}

@@ -75,7 +75,9 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 		fileWPath := writePath + val
 		fileRPath := readPath + val
 
-		if filter.CheckToFilter(fileRPath, d.rootWorkingDirectory, filterList) {
+		filePath := strings.TrimPrefix(strings.TrimSuffix(fileRPath, "/"), d.rootWorkingDirectory)
+
+		if filter.CheckToFilter(filePath, filterList) {
 			continue
 		}
 
@@ -88,7 +90,9 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 		dirWPath := writePath + val
 		dirRPath := readPath + val
 
-		if filter.CheckToFilter(dirRPath, d.rootWorkingDirectory, filterList) {
+		dirPath := strings.TrimPrefix(strings.TrimSuffix(dirRPath, "/"), d.rootWorkingDirectory)
+
+		if filter.CheckToFilter(dirPath, filterList) {
 			continue
 		}
 
