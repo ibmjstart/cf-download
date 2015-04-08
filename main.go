@@ -6,7 +6,7 @@
 * Date: 3/5/2015
 *
 * for cross platform compiling use gox (https://github.com/mitchellh/gox)
-* gox compile command: gox -output="binaries/{{.OS}}/{{.Arch}}/cf-download" -os="linux darwin windows"
+* gox compile command: gox -output="binaries/{{.OS}}/{{.Arch}}/cf-download" -osarch="linux/amd64 darwin/amd64 windows/amd64"
  */
 
 package main
@@ -34,7 +34,7 @@ import (
 *	This is the struct implementing the interface defined by the core CLI. It can
 *	be found at  "github.com/cloudfoundry/cli/plugin/plugin.go"
  */
-type downloadPlugin struct{}
+type DownloadPlugin struct{}
 
 // contains flag values
 type flagVal struct {
@@ -71,7 +71,7 @@ var wg sync.WaitGroup
 *	1 should the plugin exits nonzero.
  */
 
-func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) {
+func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) {
 	if args[0] != "download" {
 		os.Exit(0)
 	}
@@ -83,11 +83,8 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	onWindows := IsWindows()
 
 	if len(args) < 2 {
-		cmd := exec.Command("cf", "help", "download")
-		output, err := cmd.CombinedOutput()
-		check(err, "")
-		fmt.Println("\nError: Missing App Name")
-		fmt.Printf("%s", output)
+		fmt.Println(createMessage("\nError: Missing App Name", "red+b", onWindows))
+		printHelp()
 		os.Exit(1)
 	}
 
@@ -109,7 +106,7 @@ func (c *downloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	// prevent overwriting files
 	if Exists(rootWorkingDirectory) && flagVals.OverWrite_flag == false {
 		fmt.Println("\nError: destination path", rootWorkingDirectory, "already Exists and is not an empty directory.\n\nDelete it or use 'cf download APP_NAME --overwrite'")
-		return
+		os.Exit(1)
 	}
 
 	cmdExec := cmd_exec.NewCmdExec()
@@ -203,16 +200,16 @@ func ParseFlags(args []string) flagVal {
 	// check for misplaced flags
 	appName = copyOfArgs[1]
 	if strings.HasPrefix(appName, "-") || strings.HasPrefix(appName, "--") {
-		fmt.Println("\nError: App name begins with '-' or '--'. correct flag usage: 'cf download APP_NAME [--flags]'")
+		fmt.Println(createMessage("\nError: App name begins with '-' or '--'. correct flag usage: 'cf download APP_NAME [--flags]'", "red+b", IsWindows()))
+		printHelp()
+		os.Exit(1)
 	}
 
 	// Check for parsing errors
 	if err := f1.Parse(os.Args[1:]); err != nil {
 		fmt.Println("\nError: ", err, "\n")
-		cmd := exec.Command("cf", "help", "download")
-		output, err := cmd.CombinedOutput()
-		check(err, "")
-		fmt.Printf("%s", output)
+		printHelp()
+		os.Exit(1)
 	}
 
 	flagVals := flagVal{
@@ -238,7 +235,6 @@ func consoleWriter(quit chan int) {
 			fmt.Printf("\rFiles completed: %d ", filesDownloaded)
 			return
 		default:
-
 			switch count = (count + 1) % 4; count {
 			case 0:
 				fmt.Printf("\rFiles completed: %d \\ ", filesDownloaded)
@@ -316,6 +312,21 @@ func Exists(path string) bool {
 	return false
 }
 
+func createMessage(message, color string, onWindows bool) string {
+	errmsg := ansi.Color(message, color)
+	if onWindows == true {
+		errmsg = message
+	}
+
+	return errmsg
+}
+
+func printHelp() {
+	cmd := exec.Command("cf", "help", "download")
+	output, _ := cmd.CombinedOutput()
+	fmt.Printf("%s", output)
+}
+
 /*
 *	This function must be implemented as part of the	plugin interface
 *	defined by the core CLI.
@@ -330,7 +341,7 @@ func Exists(path string) bool {
 *	second field, HelpText, is used by the core CLI to display help information
 *	to the user in the core commands `cf help`, `cf`, or `cf -h`.
  */
-func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
+func (c *DownloadPlugin) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
 		Name: "download",
 		Version: plugin.VersionType{
@@ -350,7 +361,7 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 					Options: map[string]string{
 						"overwrite":             "Overwrite existing files",
 						"verbose":               "Verbose output",
-						"omit \"path/to/file\"": "Omit directories or files delimited by semicolons",
+						"omit \"path/to/file\"": "Omit directories or files (delimited by semicolons)",
 						"i": "Instance",
 					},
 				},
@@ -366,12 +377,13 @@ func (c *downloadPlugin) GetMetadata() plugin.PluginMetadata {
 * plugin.
  */
 func main() {
+
 	// Any initialization for your plugin can be handled here
 
 	// Note: The plugin's main() method is invoked at install time to collect
 	// metadata. The plugin will exit 0 and the Run([]string) method will not be
 	// invoked.
-	plugin.Start(new(downloadPlugin))
+	plugin.Start(new(DownloadPlugin))
 	// Plugin code should be written in the Run([]string) method,
 	// ensuring the plugin environment is bootstrapped.
 }

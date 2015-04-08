@@ -1,7 +1,10 @@
 package main_test
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
+	"os/exec"
 	"strings"
 
 	. "github.com/ibmjstart/cf-download"
@@ -140,6 +143,82 @@ var _ = Describe("CfDownload", func() {
 
 				Expect(correctSuffix).To(BeTrue())
 				Expect(startingPath).To(Equal("/app/src/node/"))
+			})
+		})
+	})
+
+	Describe("test error catching in run() [MUST HAVE PLUGIN INSTALLED TO PASS]", func() {
+		Context("when appname begins with -- or -", func() {
+			It("Should print error, because user has flags before appname", func() {
+				oldStdout := os.Stdout
+				file, _ := os.Create("/tmp/dat")
+				os.Stdout = file
+				cmd := exec.Command("cf", "download", "--appname")
+				output, _ := cmd.CombinedOutput()
+				fmt.Printf("%s", output)
+				file.Close()
+				os.Stdout = oldStdout
+				dat, _ := ioutil.ReadFile("/tmp/dat")
+				Expect(strings.Contains(string(dat), "Error: App name begins with '-' or '--'. correct flag usage: 'cf download APP_NAME [--flags]'")).To(BeTrue())
+			})
+
+			It("Should print error, because user not specified an appName", func() {
+				oldStdout := os.Stdout
+				file, _ := os.Create("/tmp/dat")
+				os.Stdout = file
+				cmd := exec.Command("cf", "download")
+				output, _ := cmd.CombinedOutput()
+				fmt.Printf("%s", output)
+				file.Close()
+				os.Stdout = oldStdout
+				dat, _ := ioutil.ReadFile("/tmp/dat")
+
+				Expect(strings.Contains(string(dat), "Error: Missing App Name")).To(BeTrue())
+			})
+
+			It("Should print error, test overwrite flag functionality", func() {
+				// create directory that needs to be overwritten
+				os.Mkdir("test-download", 755)
+
+				oldStdout := os.Stdout
+				file, _ := os.Create("/tmp/dat")
+				os.Stdout = file
+				cmd := exec.Command("cf", "download", "test")
+				output, _ := cmd.CombinedOutput()
+				fmt.Printf("%s", output)
+				file.Close()
+				os.Stdout = oldStdout
+				dat, _ := ioutil.ReadFile("/tmp/dat")
+				Expect(strings.Contains(string(dat), "already Exists and is not an empty directory.")).To(BeTrue())
+
+				// clean up
+				os.RemoveAll("test-download")
+			})
+
+			It("Should print error, instance flag not int", func() {
+				oldStdout := os.Stdout
+				file, _ := os.Create("/tmp/dat")
+				os.Stdout = file
+				cmd := exec.Command("cf", "download", "test", "-i", "hello")
+				output, _ := cmd.CombinedOutput()
+				fmt.Printf("%s", output)
+				file.Close()
+				os.Stdout = oldStdout
+				dat, _ := ioutil.ReadFile("/tmp/dat")
+				Expect(strings.Contains(string(dat), "Error:  invalid value ")).To(BeTrue())
+			})
+
+			It("Should print error, invalid flag", func() {
+				oldStdout := os.Stdout
+				file, _ := os.Create("/tmp/dat")
+				os.Stdout = file
+				cmd := exec.Command("cf", "download", "test", "-ooverwrite")
+				output, _ := cmd.CombinedOutput()
+				fmt.Printf("%s", output)
+				file.Close()
+				os.Stdout = oldStdout
+				dat, _ := ioutil.ReadFile("/tmp/dat")
+				Expect(strings.Contains(string(dat), "Error:  flag provided but not defined: -ooverwrite")).To(BeTrue())
 			})
 		})
 	})
