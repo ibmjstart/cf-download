@@ -182,31 +182,23 @@ func ParseFlags(args []string) flagVal {
 	instancep := f1.Int("i", 0, "-i [instanceNum]")
 	verbosep := f1.Bool("verbose", false, "--verbose")
 
-	// need to copy args[] for later as they will be overwritten when we append them to os.Args
-	// they are apparently pointers
-	copyOfArgs := make([]string, len(args))
-	for i := 0; i < len(args); i++ {
-		copyOfArgs[i] = args[i]
-	}
-
-	//we can just f1.Parse(args[1:]), no need to deal with os.Args
-	// flag package parses os.Args so we need to set it correctly
+	var err error
 	if len(args) > 2 && !strings.HasPrefix(args[2], "-") { // if there is a path as in 'cf download path' vs. 'cf download'
-		os.Args = append(os.Args[:1], args[3:]...)
+		err = f1.Parse(args[3:])
 	} else {
-		os.Args = append(os.Args[:1], args[2:]...)
+		err = f1.Parse(args[2:])
 	}
 
 	// check for misplaced flags
-	appName = copyOfArgs[1]
+	appName = args[1]
 	if strings.HasPrefix(appName, "-") || strings.HasPrefix(appName, "--") {
 		fmt.Println(createMessage("\nError: App name begins with '-' or '--'. correct flag usage: 'cf download APP_NAME [--flags]'", "red+b", IsWindows()))
 		printHelp()
 		os.Exit(1)
 	}
 
-	// Check for parsing errors
-	if err := f1.Parse(os.Args[1:]); err != nil {
+	// Check for parsing errors, display usage
+	if err != nil {
 		fmt.Println("\nError: ", err, "\n")
 		printHelp()
 		os.Exit(1)
@@ -290,7 +282,7 @@ func check(e error, errMsg string) {
 // prints slices in readable format
 func PrintSlice(slice []string) error {
 	for index, val := range slice {
-		fmt.Println(index+1, ": ", val)
+		fmt.Println(index, ": ", val)
 	}
 	return nil
 }
