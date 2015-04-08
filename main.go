@@ -282,7 +282,7 @@ func check(e error, errMsg string) {
 // prints slices in readable format
 func PrintSlice(slice []string) error {
 	for index, val := range slice {
-		fmt.Println(index, ": ", val)
+		fmt.Println(index+1, ": ", val)
 	}
 	return nil
 }
