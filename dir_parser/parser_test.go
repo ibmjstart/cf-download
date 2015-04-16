@@ -1,7 +1,7 @@
 package dir_parser_test
 
 import (
-	"github.com/ibmjstart/cf-download/cmd_exec_fake"
+	"github.com/ibmjstart/cf-download/cmd_exec/cmd_exec_fake"
 	. "github.com/ibmjstart/cf-download/dir_parser"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,10 +17,9 @@ var _ = Describe("DirParser", func() {
 		p = NewParser(cmdExec, "TestApp", "0", false, false)
 	})
 	Describe("Test getFailedDownloads()", func() {
-		It("Should return empty []string", func() {
+		It("Should return empty []string because no directory string downloads have failed.", func() {
 			fails := p.GetFailedDownloads()
 			Ω(len(fails)).To(Equal(0))
-			Ω(cap(fails)).To(Equal(0))
 		})
 	})
 
@@ -57,6 +56,11 @@ var _ = Describe("DirParser", func() {
 			cmdExec.SetOutput("Getting files for app\nOK\nNo files found")
 			_, status := p.GetDirectory("")
 			Ω(status).To(Equal("noFiles"))
+		})
+		It("test unkown api error", func() {
+			cmdExec.SetOutput("FAILED\nServer error, status code: 500, error code: 10001, message: An unknown error occurred.\n")
+			_, status := p.GetDirectory("")
+			Ω(status).To(Equal("unknownError"))
 		})
 		It("test when app is stopped", func() {
 			cmdExec.SetOutput("Getting files for app\nFAILED\nerror code: 190001")

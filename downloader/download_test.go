@@ -2,7 +2,7 @@ package downloader_test
 
 import (
 	"errors"
-	"github.com/ibmjstart/cf-download/cmd_exec_fake"
+	"github.com/ibmjstart/cf-download/cmd_exec/cmd_exec_fake"
 	. "github.com/ibmjstart/cf-download/downloader"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -64,7 +64,7 @@ var _ = Describe("Downloader tests", func() {
 	})
 
 	Describe("Test checkDownload Function", func() {
-		Context("when we recieve server error", func() {
+		Context("when we recieve permission error", func() {
 			It("Should return server error", func() {
 				falseFile := make([]string, 3)
 				falseFile[0] = "Getting files for app app_name in org org_name / space spacey as user@us.ibm.com"
@@ -72,6 +72,42 @@ var _ = Describe("Downloader tests", func() {
 
 				err := d.CheckDownload("/app/node_modules/express/application.js", falseFile, nil)
 				Expect(err).To(Equal(errors.New("download failed")))
+			})
+		})
+
+		Context("when we recieve 502 error", func() {
+			It("Should return server error", func() {
+				falseFile := make([]string, 3)
+				falseFile[0] = "Getting files for app app_name in org org_name / space spacey as user@us.ibm.com"
+				falseFile[1] = "status code: 502"
+
+				// Throw away Stdout
+				oldStdout := os.Stdout
+				os.Stdout = nil
+
+				err := d.CheckDownload("/app/node_modules/express/application.js", falseFile, nil)
+
+				// restore Stdout
+				os.Stdout = oldStdout
+				Expect(err.Error()).To(Equal("502"))
+			})
+		})
+
+		Context("when we recieve 400 error", func() {
+			It("Should return server error", func() {
+				falseFile := make([]string, 3)
+				falseFile[0] = "Getting files for app app_name in org org_name / space spacey as user@us.ibm.com"
+				falseFile[1] = "status code: 400"
+
+				// Throw away Stdout
+				oldStdout := os.Stdout
+				os.Stdout = nil
+
+				err := d.CheckDownload("/app/node_modules/express/application.js", falseFile, nil)
+
+				// restore Stdout
+				os.Stdout = oldStdout
+				Expect(err.Error()).To(Equal("400"))
 			})
 		})
 
@@ -96,10 +132,9 @@ var _ = Describe("Downloader tests", func() {
 	})
 
 	Describe("Test getFailedDownloads()", func() {
-		It("Should have 1 failed download from previous CheckDownload Test", func() {
+		It("Should have 3 failed download from previous CheckDownload Test", func() {
 			fails := d.GetFailedDownloads()
-			Ω(len(fails)).To(Equal(1))
-			Ω(cap(fails)).To(Equal(1))
+			Ω(len(fails)).To(Equal(3))
 		})
 	})
 

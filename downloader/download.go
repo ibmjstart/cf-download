@@ -116,7 +116,7 @@ func (d *downloader) DownloadFile(readPath, writePath string, fileDownloadGroup 
 	defer fileDownloadGroup.Done()
 
 	output, err := d.cmdExec.GetFile(d.appName, readPath, d.instance)
-	//fmt.Println(string(output))
+
 	err = d.WriteFile(readPath, writePath, output, err)
 	check(err, "Error DF1: failed to read directory")
 
@@ -144,24 +144,34 @@ func (d *downloader) WriteFile(readPath, writePath string, output []byte, err er
 }
 
 func (d *downloader) CheckDownload(readPath string, file []string, err error) error {
-	// check for invalid file error.
-	// some files are inaccesible from the cf files (permission issues) this is rare but we need to
-	// alert users if it occurs. It usually happens in vendor files.
-	errMsg := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", d.onWindows)
 
-	if strings.Contains(file[1], "FAILED") {
+	errMsg := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", d.onWindows)
+	if strings.Contains(file[1], "502") {
+		// Caused by cf cli api connection issues
+		PrintSlice(file)
+		d.failedDownloads = append(d.failedDownloads, errMsg)
+		return errors.New("502")
+		// TODO: add these files to a retry queue and retry downloading them at the end. (see feature branch)
+	} else if strings.Contains(file[1], "status code: 400") {
+		// Caused by cf cli api connection issues
+		PrintSlice(file)
+		d.failedDownloads = append(d.failedDownloads, errMsg)
+		return errors.New("400")
+		// TODO: add these files to a retry queue and retry downloading them at the end. (see feature branch)
+	} else if strings.Contains(file[1], "FAILED") {
+		// some files are inaccesible from the cf files (permission issues) this is rare but we need to
+		// alert users if it occurs. It usually happens in vendor files.
 		d.failedDownloads = append(d.failedDownloads, errMsg)
 		if d.verbose {
 			fmt.Println(errMsg)
 		}
 		return errors.New("download failed")
-	} else if strings.Contains(file[1], "checkDownload: status code: 502") {
-		PrintSlice(file)
-		d.failedDownloads = append(d.failedDownloads, errMsg)
-		// TODO: add these files to a retry queue and retry downloading them at the end. (see feature branch)
 	} else {
 		// check for other errors
-		check(err, "Called by: CheckDownload [cf files "+d.appName+" "+readPath+"]")
+		if err != nil {
+			PrintSlice(file)
+		}
+		check(err, "Error CD1: [cf files "+d.appName+" "+readPath+"]")
 	}
 	return nil
 }

@@ -94,19 +94,20 @@ func (p *parser) GetDirectory(readPath string) (string, string) {
 	if strings.Contains(dirSlice[1], "not found") {
 		errorMsg := createMessage("Error: "+p.appName+" app not found (check space and org)", "red+b", p.onWindows)
 		return errorMsg, "notFound"
-	}
-
-	// p usually gets called when an app is not running and you attempt to download it.
-	dir := dirSlice[2]
-	if strings.Contains(dir, "error code: 190001") {
+	} else if strings.Contains(dirSlice[1], "status code: 500, error code: 10001") {
+		errorMsg := createMessage("Fatal API error", "red+b", p.onWindows)
+		return errorMsg, "unknownError"
+	} else if strings.Contains(dirSlice[2], "error code: 190001") {
+		// usually gets called when an app is not running and you attempt to download it.
 		errorMsg := createMessage("App not found, or the app is in stopped state (This can also be caused by api failure)", "red+b", p.onWindows)
 		return errorMsg, "appUnavailable"
-	}
-
-	// handle an empty directory
-	if strings.Contains(dir, "No files found") {
+	} else if strings.Contains(dirSlice[2], "No files found") {
+		// handle an empty directory
 		return "", "noFiles"
 	} else {
+		if err != nil {
+			PrintSlice(dirSlice)
+		}
 		check(err, "Error E1: failed to read directory")
 	}
 
@@ -127,9 +128,12 @@ func (p *parser) GetDirectory(readPath string) (string, string) {
 		//p.retryDirs = append(p.retryDirs, retryDir{ReadPath: readPath, WritePath: writePath})
 	} else {
 		// check for other errors
-		check(err, "Error E1: failed to read directory")
+		if err != nil {
+			PrintSlice(dirSlice)
+		}
+		check(err, "Error E2: failed to read directory")
 	}
-	return dir, "OK"
+	return dirSlice[2], "OK"
 }
 
 func (p *parser) GetFailedDownloads() []string {

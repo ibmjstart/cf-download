@@ -101,7 +101,7 @@ var _ = Describe("CfDownload", func() {
 			})
 		})
 		Context("test target directory parsing", func() {
-			It("should still return /app/src/node/ for startingPath", func() {
+			It("should still return /app/src/node/ for startingPath (INPUT has leading and trailing slash)", func() {
 				args[0] = "download"
 				args[1] = "app_name"
 				args[2] = "/app/src/node/"
@@ -116,7 +116,7 @@ var _ = Describe("CfDownload", func() {
 			})
 		})
 		Context("test target directory parsing", func() {
-			It("should still return /app/src/node/ for startingPath", func() {
+			It("should still return /app/src/node/ for startingPath (INPUT only has trailing slash)", func() {
 				args[0] = "download"
 				args[1] = "app_name"
 				args[2] = "app/src/node/"
@@ -131,7 +131,7 @@ var _ = Describe("CfDownload", func() {
 			})
 		})
 		Context("test target directory parsing", func() {
-			It("should still return /app/src/node/ for startingPath", func() {
+			It("should still return /app/src/node/ for startingPath (INPUT only has leading slash)", func() {
 				args[0] = "download"
 				args[1] = "app_name"
 				args[2] = "/app/src/node"
