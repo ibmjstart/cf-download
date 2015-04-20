@@ -255,6 +255,10 @@ func PrintCompletionInfo(start time.Time, onWindows bool) {
 		PrintSlice(failedDownloads)
 	}
 
+	if len(failedDownloads) > 100 {
+		fmt.Println("\nYou had over 100 failed downloads, we highly recommend you omit the failed file'sopen parent directories using the omit flag.\n")
+	}
+
 	// display runtime
 	elapsed := time.Since(start)
 	elapsedString := strings.Split(elapsed.String(), ".")[0]
@@ -381,8 +385,9 @@ func main() {
 	// you can run this plugin outside of the plugin architecture by setting debuglocally = true.
 
 	// example usage for locall run: go run main.go download APP_NAME --overwrite 2> err.txt
+	// note the lack of 'cf'
 
-	debugLocally := false
+	debugLocally := true
 	if debugLocally {
 		var run DownloadPlugin
 		run.Run(nil, os.Args[1:])

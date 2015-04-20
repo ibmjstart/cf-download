@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type Parser interface {
@@ -89,6 +90,26 @@ func (p *parser) GetDirectory(readPath string) (string, string) {
 	// make the cf files call using exec
 	output, err := p.cmdExec.GetFile(p.appName, readPath, p.instance)
 	dirSlice := strings.SplitAfterN(string(output), "\n", 3)
+
+	// if cf files fails to get directory, retry (this code is not covered in tests)
+	if len(dirSlice) < 2 {
+		iterations := 0
+		for len(dirSlice) < 2 && iterations < 10 {
+			time.Sleep(3 * time.Second)
+			output, err = p.cmdExec.GetFile(p.appName, readPath, p.instance)
+			dirSlice = strings.SplitAfterN(string(output), "\n", 3)
+			iterations++
+		}
+	}
+
+	if len(dirSlice) < 2 {
+		messsage := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", p.onWindows)
+		p.failedDownloads = append(p.failedDownloads, messsage)
+		if p.verbose {
+			fmt.Println(messsage)
+		}
+		return "", "Failed after retry"
+	}
 
 	// check for invalid or missing app
 	if strings.Contains(dirSlice[1], "not found") {
