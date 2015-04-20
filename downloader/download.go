@@ -117,8 +117,7 @@ func (d *downloader) DownloadFile(readPath, writePath string, fileDownloadGroup 
 
 	output, err := d.cmdExec.GetFile(d.appName, readPath, d.instance)
 
-	err = d.WriteFile(readPath, writePath, output, err)
-	check(err, "Error DF1: failed to read directory")
+	d.WriteFile(readPath, writePath, output, err)
 
 	return nil
 }
@@ -127,7 +126,7 @@ func (d *downloader) WriteFile(readPath, writePath string, output []byte, err er
 	file := strings.SplitAfterN(string(output), "\n", 3)
 
 	// check for invalid files or download issues
-	d.CheckDownload(readPath, file, err)
+	downloadErr := d.CheckDownload(readPath, file, err)
 
 	if d.verbose {
 		fmt.Printf("Writing file: %s\n", readPath)
@@ -137,16 +136,26 @@ func (d *downloader) WriteFile(readPath, writePath string, output []byte, err er
 		d.filesDownloaded++
 	}
 
-	fileAsString := file[2]
-	// write downloaded file to writePath
-	err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
+	if downloadErr == nil {
+		fileAsString := file[2]
+		// write downloaded file to writePath
+		err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
+	}
+
 	return err
 }
 
 func (d *downloader) CheckDownload(readPath string, file []string, err error) error {
-
 	errMsg := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", d.onWindows)
-	if strings.Contains(file[1], "502") {
+	if len(file) < 2 {
+		// Sometimes files are inaccessible, but the api does not alert us by using a FAILED response.
+		// alert users if it occurs (verbose). It usually happens in vendor files.
+		d.failedDownloads = append(d.failedDownloads, errMsg)
+		if d.verbose {
+			fmt.Println(errMsg)
+		}
+		return errors.New("download failed (empty)")
+	} else if strings.Contains(file[1], "502") {
 		// Caused by cf cli api connection issues
 		PrintSlice(file)
 		d.failedDownloads = append(d.failedDownloads, errMsg)

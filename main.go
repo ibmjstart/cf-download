@@ -339,7 +339,7 @@ func (c *DownloadPlugin) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 0,
 			Minor: 1,
-			Build: 3,
+			Build: 4,
 		},
 		Commands: []plugin.Command{
 			plugin.Command{
@@ -375,7 +375,21 @@ func main() {
 	// Note: The plugin's main() method is invoked at install time to collect
 	// metadata. The plugin will exit 0 and the Run([]string) method will not be
 	// invoked.
-	plugin.Start(new(DownloadPlugin))
+
+	// About debug Locally:
+	// The plugin interface hides panics from stdout, so in order to get panic info,
+	// you can run this plugin outside of the plugin architecture by setting debuglocally = true.
+
+	// example usage for locall run: go run main.go download APP_NAME --overwrite 2> err.txt
+
+	debugLocally := false
+	if debugLocally {
+		var run DownloadPlugin
+		run.Run(nil, os.Args[1:])
+	} else {
+		plugin.Start(new(DownloadPlugin))
+	}
+
 	// Plugin code should be written in the Run([]string) method,
 	// ensuring the plugin environment is bootstrapped.
 }

@@ -68,6 +68,23 @@ var _ = Describe("Downloader tests", func() {
 			})
 		})
 
+		Context("when we recieve an empty FAILED file", func() {
+			It("Should return server error", func() {
+				falseFile := make([]string, 1)
+				falseFile[0] = ""
+
+				// Throw away Stdout
+				oldStdout := os.Stdout
+				os.Stdout = nil
+
+				err := d.CheckDownload("/app/node_modules/express/application.js", falseFile, nil)
+
+				// restore Stdout
+				os.Stdout = oldStdout
+				Expect(err.Error()).To(Equal("download failed (empty)"))
+			})
+		})
+
 		Context("when we recieve 502 error", func() {
 			It("Should return server error", func() {
 				falseFile := make([]string, 3)
@@ -125,9 +142,9 @@ var _ = Describe("Downloader tests", func() {
 	})
 
 	Describe("Test getFailedDownloads()", func() {
-		It("Should have 3 failed download from previous CheckDownload Test", func() {
+		It("Should have 4 failed download from previous CheckDownload Test", func() {
 			fails := d.GetFailedDownloads()
-			Ω(len(fails)).To(Equal(3))
+			Ω(len(fails)).To(Equal(4))
 		})
 	})
 
