@@ -85,66 +85,63 @@ var _ = Describe("CfDownload", func() {
 	})
 
 	Describe("test directoryContext parsing", func() {
-		Context("when directory exists", func() {
-			It("Should return correct strings", func() {
-				args[0] = "download"
-				args[1] = "app_name"
-				args[2] = "app/src/node"
-				args[3] = "--verbose"
-				currentDirectory, _ := os.Getwd()
-				rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
 
-				correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+		It("Should return correct strings", func() {
+			args[0] = "download"
+			args[1] = "app_name"
+			args[2] = "app/src/node"
+			args[3] = "--verbose"
+			currentDirectory, _ := os.Getwd()
+			rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
 
-				Expect(correctSuffix).To(BeTrue())
-				Expect(startingPath).To(Equal("/app/src/node/"))
-			})
+			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+
+			Expect(correctSuffix).To(BeTrue())
+			Expect(startingPath).To(Equal("/app/src/node/"))
 		})
-		Context("test target directory parsing", func() {
-			It("should still return /app/src/node/ for startingPath (INPUT has leading and trailing slash)", func() {
-				args[0] = "download"
-				args[1] = "app_name"
-				args[2] = "/app/src/node/"
-				args[3] = "--verbose"
-				currentDirectory, _ := os.Getwd()
-				rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
 
-				correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+		It("should still return /app/src/node/ for startingPath (INPUT has leading and trailing slash)", func() {
+			args[0] = "download"
+			args[1] = "app_name"
+			args[2] = "/app/src/node/"
+			args[3] = "--verbose"
+			currentDirectory, _ := os.Getwd()
+			rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
 
-				Expect(correctSuffix).To(BeTrue())
-				Expect(startingPath).To(Equal("/app/src/node/"))
-			})
+			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+
+			Expect(correctSuffix).To(BeTrue())
+			Expect(startingPath).To(Equal("/app/src/node/"))
 		})
-		Context("test target directory parsing", func() {
-			It("should still return /app/src/node/ for startingPath (INPUT only has trailing slash)", func() {
-				args[0] = "download"
-				args[1] = "app_name"
-				args[2] = "app/src/node/"
-				args[3] = "--verbose"
-				currentDirectory, _ := os.Getwd()
-				rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
 
-				correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+		It("should still return /app/src/node/ for startingPath (INPUT only has trailing slash)", func() {
+			args[0] = "download"
+			args[1] = "app_name"
+			args[2] = "app/src/node/"
+			args[3] = "--verbose"
+			currentDirectory, _ := os.Getwd()
+			rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
 
-				Expect(correctSuffix).To(BeTrue())
-				Expect(startingPath).To(Equal("/app/src/node/"))
-			})
+			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+
+			Expect(correctSuffix).To(BeTrue())
+			Expect(startingPath).To(Equal("/app/src/node/"))
 		})
-		Context("test target directory parsing", func() {
-			It("should still return /app/src/node/ for startingPath (INPUT only has leading slash)", func() {
-				args[0] = "download"
-				args[1] = "app_name"
-				args[2] = "/app/src/node"
-				args[3] = "--verbose"
-				currentDirectory, _ := os.Getwd()
-				rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
 
-				correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+		It("should still return /app/src/node/ for startingPath (INPUT only has leading slash)", func() {
+			args[0] = "download"
+			args[1] = "app_name"
+			args[2] = "/app/src/node"
+			args[3] = "--verbose"
+			currentDirectory, _ := os.Getwd()
+			rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
 
-				Expect(correctSuffix).To(BeTrue())
-				Expect(startingPath).To(Equal("/app/src/node/"))
-			})
+			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+
+			Expect(correctSuffix).To(BeTrue())
+			Expect(startingPath).To(Equal("/app/src/node/"))
 		})
+
 	})
 
 	Describe("test error catching in run() [MUST HAVE PLUGIN INSTALLED TO PASS]", func() {

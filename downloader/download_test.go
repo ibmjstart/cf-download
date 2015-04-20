@@ -25,15 +25,6 @@ var _ = Describe("Downloader tests", func() {
 	cmdExec = cmd_exec_fake.NewCmdExec()
 	d = NewDownloader(cmdExec, &wg, "appName", "0", "rootWorkingDirectory", false, false)
 
-	AfterEach(func() {
-		// turn off the directory faker
-		cmdExec.SetFakeDir(false)
-
-		os.RemoveAll("testFiles/test1.txt")
-		os.RemoveAll("testFiles/test2.txt")
-		os.RemoveAll(currentDirectory + "/test-download")
-	})
-
 	// downloadfile also tests the following functions
 	// WriteFile(), CheckDownload()
 	Describe("Test DownloadFile function", func() {
@@ -59,6 +50,8 @@ var _ = Describe("Downloader tests", func() {
 				Ω(fileInfo.Name()).To(Equal("test2.txt"))
 				Ω(fileInfo.Size()).To(BeEquivalentTo(924))
 				Ω(fileInfo.IsDir()).To(BeFalse())
+				os.RemoveAll("testFiles/test1.txt")
+				os.RemoveAll("testFiles/test2.txt")
 			})
 		})
 	})
@@ -153,10 +146,10 @@ var _ = Describe("Downloader tests", func() {
 				readPath := currentDirectory
 				writePath := currentDirectory + "/test-download"
 
-				// delete the test folder (if exists) before testing
-				os.RemoveAll(writePath)
-
+				// turn on directory faking
 				cmdExec.SetFakeDir(true)
+				// make sure to turn it off after test
+				defer cmdExec.SetFakeDir(false)
 
 				files := []string{}
 				dirs := []string{"/testFiles/"}
@@ -185,6 +178,8 @@ var _ = Describe("Downloader tests", func() {
 				Ω(appContents[0].Name()).To(Equal("app.go"))
 				Ω(appContents[1].Name()).To(Equal("server.go"))
 
+				// delete the folder after testing
+				os.RemoveAll(writePath)
 			})
 		})
 	})
@@ -196,10 +191,10 @@ var _ = Describe("Downloader tests", func() {
 				readPath := currentDirectory
 				writePath := currentDirectory + "/test-download"
 
-				// delete the test folder (if exists) before testing
-				os.RemoveAll(writePath)
-
+				// turn on directory faking
 				cmdExec.SetFakeDir(true)
+				// make sure to turn it off after test
+				defer cmdExec.SetFakeDir(false)
 
 				files := []string{}
 				dirs := []string{"/testFiles/"}
