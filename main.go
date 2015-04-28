@@ -339,7 +339,7 @@ func printHelp() {
  */
 func (c *DownloadPlugin) GetMetadata() plugin.PluginMetadata {
 	return plugin.PluginMetadata{
-		Name: "download",
+		Name: "cf-download",
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 0,
@@ -384,10 +384,10 @@ func main() {
 	// The plugin interface hides panics from stdout, so in order to get panic info,
 	// you can run this plugin outside of the plugin architecture by setting debuglocally = true.
 
-	// example usage for locall run: go run main.go download APP_NAME --overwrite 2> err.txt
+	// example usage for local run: go run main.go download APP_NAME --overwrite 2> err.txt
 	// note the lack of 'cf'
 
-	debugLocally := true
+	debugLocally := false
 	if debugLocally {
 		var run DownloadPlugin
 		run.Run(nil, os.Args[1:])
