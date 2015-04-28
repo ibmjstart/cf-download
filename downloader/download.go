@@ -155,7 +155,7 @@ func (d *downloader) CheckDownload(readPath string, file []string, err error) er
 			fmt.Println(errMsg)
 		}
 		return errors.New("download failed (empty)")
-	} else if strings.Contains(file[1], "502") {
+	} else if strings.Contains(file[1], "502") || strings.Contains(file[1], "500") {
 		// Caused by cf cli api connection issues
 		PrintSlice(file)
 		d.failedDownloads = append(d.failedDownloads, errMsg)
