@@ -103,6 +103,24 @@ var _ = Describe("Downloader tests", func() {
 			})
 		})
 
+		Context("when we recieve 500 error", func() {
+			It("Should return server error", func() {
+				falseFile := make([]string, 3)
+				falseFile[0] = "Getting files for app app_name in org org_name / space spacey as user@us.ibm.com"
+				falseFile[1] = "status code: 500"
+
+				// Throw away Stdout
+				oldStdout := os.Stdout
+				os.Stdout = nil
+
+				err := d.CheckDownload("/app/node_modules/express/application.js", falseFile, nil)
+
+				// restore Stdout
+				os.Stdout = oldStdout
+				Expect(err.Error()).To(Equal("502"))
+			})
+		})
+
 		Context("when we recieve 400 error", func() {
 			It("Should return server error", func() {
 				falseFile := make([]string, 3)
@@ -142,9 +160,9 @@ var _ = Describe("Downloader tests", func() {
 	})
 
 	Describe("Test getFailedDownloads()", func() {
-		It("Should have 4 failed download from previous CheckDownload Test", func() {
+		It("Should have 5 failed download from previous CheckDownload Test", func() {
 			fails := d.GetFailedDownloads()
-			Ω(len(fails)).To(Equal(4))
+			Ω(len(fails)).To(Equal(5))
 		})
 	})
 
