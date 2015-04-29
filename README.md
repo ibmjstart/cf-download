@@ -4,7 +4,7 @@
 
 
 ##Installation
-#####Install from CLI
+#####Install from CLI (Recommended)
   ```
   $ cf add-plugin-repo CF-Community http://plugins.cloudfoundry.org/
   $ cf install-plugin targets -r CF-Community
