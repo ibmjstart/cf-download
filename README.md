@@ -11,9 +11,9 @@
 
 ## Download
 
-#### Mac:     [64-bit](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/binaries/darwin/amd64/cf-download)   
-#### Windows: [64-bit](https://github.rtp.raleigh.ibm.com/jstart/cf-download/blob/master/binaries/windows/amd64/cf-download.exe)    
-#### Linux:   [64-bit](https://github.rtp.raleigh.ibm.com/jstart/cf-download/raw/master/binaries/linux/amd64/cf-download)
+#### Mac:     [64-bit](https://github.com/ibmjstart/cf-download/blob/master/binaries/darwin/amd64/cf-download?raw=true)   
+#### Windows: [64-bit](https://github.com/ibmjstart/cf-download/blob/master/binaries/windows/amd64/cf-download.exe?raw=true)    
+#### Linux:   [64-bit](https://github.com/ibmjstart/cf-download/blob/master/binaries/linux/amd64/cf-download?raw=true)
 
 ***
 
