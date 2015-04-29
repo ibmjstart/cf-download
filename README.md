@@ -1,19 +1,28 @@
 # CF DOWNLOAD
 ### A Cloud Foundry cli plugin for downloading your application contents after staging
 
-## Install 
-1. download binary (See Download Section)
+
+
+##Installation
+#####Install from CLI
+  ```
+  $ cf add-plugin-repo CF-Community http://plugins.cloudfoundry.org/
+  $ cf install-plugin targets -r CF-Community
+  ```
+  
+##### Install from binary
+1. download binary (See Download Section below)
 2. **cd path/to/downloaded/binary**
 3. If you've already installed the plugin and are updating, you must first run **cf uninstall-plugin download**
 4. Then install the plugin with **cf install-plugin cf-download** 
 	* If you get a permission error run: **chmod +x cf-download** on the binary
 5. Verify the plugin installed by looking for it with **cf plugins** 
 
-## Download
+##### Download Binaries
 
-#### Mac:     [64-bit](https://github.com/ibmjstart/cf-download/blob/master/binaries/darwin/amd64/cf-download?raw=true)   
-#### Windows: [64-bit](https://github.com/ibmjstart/cf-download/blob/master/binaries/windows/amd64/cf-download.exe?raw=true)    
-#### Linux:   [64-bit](https://github.com/ibmjstart/cf-download/blob/master/binaries/linux/amd64/cf-download?raw=true)
+###### Mac:     [64-bit](https://github.com/ibmjstart/cf-download/blob/master/binaries/darwin/amd64/cf-download?raw=true)   
+###### Windows: [64-bit](https://github.com/ibmjstart/cf-download/blob/master/binaries/windows/amd64/cf-download.exe?raw=true)    
+###### Linux:   [64-bit](https://github.com/ibmjstart/cf-download/blob/master/binaries/linux/amd64/cf-download?raw=true)
 
 ***
 
