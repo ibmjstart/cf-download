@@ -13,7 +13,7 @@
 ##### Install from binary
 1. download binary (See Download Section below)
 2. **cd path/to/downloaded/binary**
-3. If you've already installed the plugin and are updating, you must first run **cf uninstall-plugin download**
+3. If you've already installed the plugin and are updating, you must first run **cf uninstall-plugin cf-download**
 4. Then install the plugin with **cf install-plugin cf-download** 
 	* If you get a permission error run: **chmod +x cf-download** on the binary
 5. Verify the plugin installed by looking for it with **cf plugins** 
