@@ -7,7 +7,7 @@
 #####Install from CLI (Recommended)
   ```
   $ cf add-plugin-repo CF-Community http://plugins.cloudfoundry.org/
-  $ cf install-plugin targets -r CF-Community
+  $ cf install-plugin cf-download -r CF-Community
   ```
   
 ##### Install from binary
