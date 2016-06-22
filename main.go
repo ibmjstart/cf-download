@@ -21,7 +21,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-
+	"path/filepath"
 	"github.com/cloudfoundry/cli/plugin"
 	"github.com/ibmjstart/cf-download/cmd_exec"
 	"github.com/ibmjstart/cf-download/dir_parser"
@@ -45,12 +45,12 @@ type flagVal struct {
 }
 
 var (
-	rootWorkingDirectory string
-	appName              string
-	filesDownloaded      int
-	failedDownloads      []string
-	parser               dir_parser.Parser
-	dloader              downloader.Downloader
+	rootWorkingDirectoryServer string
+	appName                    string
+	filesDownloaded            int
+	failedDownloads            []string
+	parser                     dir_parser.Parser
+	dloader                    downloader.Downloader
 )
 
 // global wait group for all download threads
@@ -95,7 +95,8 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 	workingDir, err := os.Getwd()
 	check(err, "Called by: Getwd")
-	rootWorkingDirectory, startingPath := GetDirectoryContext(workingDir, args)
+	rootWorkingDirectoryServer, startingPathServer := GetDirectoryContext(workingDir, args)
+	rootWorkingDirectoryLocal := filepath.FromSlash(rootWorkingDirectoryServer)
 
 	// ensure cf_trace is disabled, otherwise parsing breaks
 	if os.Getenv("CF_TRACE") == "true" {
@@ -104,17 +105,17 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	}
 
 	// prevent overwriting files
-	if Exists(rootWorkingDirectory) && flagVals.OverWrite_flag == false {
-		fmt.Println("\nError: destination path", rootWorkingDirectory, "already Exists and is not an empty directory.\n\nDelete it or use 'cf download APP_NAME --overwrite'")
+	if Exists(rootWorkingDirectoryLocal) && flagVals.OverWrite_flag == false {
+		fmt.Println("\nError: destination path", rootWorkingDirectoryLocal, "already Exists and is not an empty directory.\n\nDelete it or use 'cf download APP_NAME --overwrite'")
 		os.Exit(1)
 	}
 
 	cmdExec := cmd_exec.NewCmdExec()
 	parser = dir_parser.NewParser(cmdExec, appName, flagVals.Instance_flag, onWindows, flagVals.Verbose_flag)
-	dloader = downloader.NewDownloader(cmdExec, &wg, appName, flagVals.Instance_flag, rootWorkingDirectory, flagVals.Verbose_flag, onWindows)
+	dloader = downloader.NewDownloader(cmdExec, &wg, appName, flagVals.Instance_flag, rootWorkingDirectoryServer, flagVals.Verbose_flag, onWindows)
 
 	// parse the directory
-	files, dirs := parser.ExecParseDir(startingPath)
+	files, dirs := parser.ExecParseDir(startingPathServer)
 
 	// stop consoleWriter
 	quit := make(chan int)
@@ -126,7 +127,7 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 	// Start the download
 	wg.Add(1)
-	dloader.Download(files, dirs, startingPath, rootWorkingDirectory, filterList)
+	dloader.Download(files, dirs, startingPathServer, rootWorkingDirectoryLocal, filterList)
 
 	// Wait for download goRoutines
 	wg.Wait()

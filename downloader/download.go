@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"path/filepath"
 
 	"github.com/ibmjstart/cf-download/cmd_exec"
 	"github.com/ibmjstart/cf-download/dir_parser"
@@ -24,29 +25,29 @@ type Downloader interface {
 }
 
 type downloader struct {
-	cmdExec              cmd_exec.CmdExec
-	rootWorkingDirectory string
-	appName              string
-	instance             string
-	verbose              bool
-	onWindows            bool
-	failedDownloads      []string
-	filesDownloaded      int
-	parser               dir_parser.Parser
-	wg                   *sync.WaitGroup
+	cmdExec                    cmd_exec.CmdExec
+	rootWorkingDirectoryServer string
+	appName                    string
+	instance                   string
+	verbose                    bool
+	onWindows                  bool
+	failedDownloads            []string
+	filesDownloaded            int
+	parser                     dir_parser.Parser
+	wg                         *sync.WaitGroup
 }
 
-func NewDownloader(cmdExec cmd_exec.CmdExec, WG *sync.WaitGroup, appName, instance, rootWorkingDirectory string, verbose, onWindows bool) *downloader {
+func NewDownloader(cmdExec cmd_exec.CmdExec, WG *sync.WaitGroup, appName, instance, rootWorkingDirectoryServer string, verbose, onWindows bool) *downloader {
 
 	return &downloader{
-		cmdExec:              cmdExec,
-		rootWorkingDirectory: rootWorkingDirectory,
-		appName:              appName,
-		instance:             instance,
-		verbose:              verbose,
-		onWindows:            onWindows,
-		parser:               dir_parser.NewParser(cmdExec, appName, instance, onWindows, verbose),
-		wg:                   WG,
+		cmdExec:                    cmdExec,
+		rootWorkingDirectoryServer: rootWorkingDirectoryServer,
+		appName:                    appName,
+		instance:                   instance,
+		verbose:                    verbose,
+		onWindows:                  onWindows,
+		parser:                     dir_parser.NewParser(cmdExec, appName, instance, onWindows, verbose),
+		wg:                         WG,
 	}
 }
 
@@ -75,7 +76,7 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 		fileWPath := writePath + val
 		fileRPath := readPath + val
 
-		filePath := strings.TrimPrefix(strings.TrimSuffix(fileRPath, "/"), d.rootWorkingDirectory)
+		filePath := strings.TrimPrefix(strings.TrimSuffix(fileRPath, "/"), d.rootWorkingDirectoryServer)
 
 		if filter.CheckToFilter(filePath, filterList) {
 			continue
@@ -87,10 +88,9 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 
 	// call download on every sub directory
 	for _, val := range dirs {
-		dirWPath := writePath + val
+		dirWPath := writePath + filepath.FromSlash(val)
 		dirRPath := readPath + val
-
-		dirPath := strings.TrimPrefix(strings.TrimSuffix(dirRPath, "/"), d.rootWorkingDirectory)
+		dirPath := strings.TrimPrefix(strings.TrimSuffix(dirRPath, "/"), d.rootWorkingDirectoryServer)
 
 		if filter.CheckToFilter(dirPath, filterList) {
 			continue
