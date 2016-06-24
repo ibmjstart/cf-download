@@ -65,17 +65,14 @@ func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
 			}
 		}
 		return files, dirs
-	} else if status == "noFiles" || status == "502" || status == "appUnavailable" {
-		if len(dir) > 0 {
-			fmt.Println(dir)
-		}
-		return nil, nil
 	} else {
 		//error occured, error message displayed by GetDirectory()
 		if len(dir) > 0 {
 			fmt.Println(dir)
 		}
-		os.Exit(1)
+		if readPath == "/" {
+			os.Exit(1)
+		}
 	}
 
 	return nil, nil
@@ -102,38 +99,12 @@ func (p *parser) GetDirectory(readPath string) (string, string) {
 		}
 	}
 
-	if len(dirSlice) < 2 {
-		messsage := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", p.onWindows)
-		p.failedDownloads = append(p.failedDownloads, messsage)
-		if p.verbose {
-			fmt.Println(messsage)
+	if len(dirSlice) >= 2 && strings.Contains(dirSlice[1], "OK") {
+		if strings.Compare(dirSlice[2], "\nNo files found\n") == 0 {
+			return "", "noFiles"
 		}
-		return "", "Failed after retry"
-	}
-
-	// check for invalid or missing app
-	if strings.Contains(dirSlice[1], "not found") {
-		errorMsg := createMessage("Error: "+p.appName+" app not found (check space and org)", "red+b", p.onWindows)
-		return errorMsg, "notFound"
-	} else if strings.Contains(dirSlice[1], "status code: 500, error code: 10001") {
-		errorMsg := createMessage("Fatal API error", "red+b", p.onWindows)
-		return errorMsg, "unknownError"
-	} else if strings.Contains(dirSlice[2], "error code: 190001") {
-		// usually gets called when an app is not running and you attempt to download it.
-		errorMsg := createMessage("App not found, or the app is in stopped state (This can also be caused by api failure)", "red+b", p.onWindows)
-		return errorMsg, "appUnavailable"
-	} else if strings.Contains(dirSlice[2], "No files found") {
-		// handle an empty directory
-		return "", "noFiles"
+		return dirSlice[2], "OK"
 	} else {
-		if err != nil {
-			PrintSlice(dirSlice)
-		}
-		check(err, "Error E1: failed to read directory")
-	}
-
-	// directory inaccessible due to lack of permissions
-	if strings.Contains(dirSlice[1], "FAILED") {
 		messsage := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", p.onWindows)
 
 		p.failedDownloads = append(p.failedDownloads, messsage)
@@ -141,20 +112,13 @@ func (p *parser) GetDirectory(readPath string) (string, string) {
 		if p.verbose {
 			fmt.Println(messsage)
 		}
-		return "", "Failed"
-	} else if strings.Contains(dirSlice[1], "status code: 502") {
-		return dirSlice[1], "502"
-		// if 502 errors become an issue we should give users more information at this point
 
-		//p.retryDirs = append(p.retryDirs, retryDir{ReadPath: readPath, WritePath: writePath})
-	} else {
 		// check for other errors
 		if err != nil {
 			PrintSlice(dirSlice)
 		}
-		check(err, "Error E2: failed to read directory")
+		return string(output), "Failed"
 	}
-	return dirSlice[2], "OK"
 }
 
 func (p *parser) GetFailedDownloads() []string {
@@ -167,16 +131,6 @@ func isDelimiter(str string) bool {
 		return true
 	}
 	return false
-}
-
-func check(e error, errMsg string) {
-	if e != nil {
-		fmt.Println("\nError: ", e)
-		if errMsg != "" {
-			fmt.Println("Message: ", errMsg)
-		}
-		os.Exit(1)
-	}
 }
 
 // prints slices in readable format
