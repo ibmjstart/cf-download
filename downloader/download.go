@@ -129,7 +129,9 @@ func (d *downloader) WriteFile(readPath, writePath string, output []byte, err er
 	downloadErr := d.CheckDownload(readPath, file, err)
 
 	if d.verbose {
-		fmt.Printf("Writing file: %s\n", readPath)
+		if downloadErr == nil {
+			fmt.Printf("Writing file: %s\n", readPath)
+		}
 	} else {
 		// increment download counter for commandline display
 		// see consoleWriter() in main.go
@@ -138,6 +140,13 @@ func (d *downloader) WriteFile(readPath, writePath string, output []byte, err er
 
 	if downloadErr == nil {
 		fileAsString := file[2]
+
+		// there is currently an issue open to change the behavior for empty files
+		// https://github.com/cloudfoundry/cli/issues/869
+		if strings.Compare(fileAsString, "\nNo files found\n") == 0 {
+			fileAsString = ""
+		}
+
 		// write downloaded file to writePath
 		err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
 	}
@@ -146,43 +155,22 @@ func (d *downloader) WriteFile(readPath, writePath string, output []byte, err er
 }
 
 func (d *downloader) CheckDownload(readPath string, file []string, err error) error {
-	errMsg := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", d.onWindows)
-	if len(file) < 2 {
-		// Sometimes files are inaccessible, but the api does not alert us by using a FAILED response.
-		// alert users if it occurs (verbose). It usually happens in vendor files.
+	if len(file) >= 2 && strings.Contains(file[1], "OK"){
+		return nil
+	} else {
+		errMsg := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", d.onWindows)
+
 		d.failedDownloads = append(d.failedDownloads, errMsg)
+
 		if d.verbose {
 			fmt.Println(errMsg)
-		}
-		return errors.New("download failed (empty)")
-	} else if strings.Contains(file[1], "502") || strings.Contains(file[1], "500") {
-		// Caused by cf cli api connection issues
-		PrintSlice(file)
-		d.failedDownloads = append(d.failedDownloads, errMsg)
-		return errors.New("502")
-		// TODO: add these files to a retry queue and retry downloading them at the end. (see feature branch)
-	} else if strings.Contains(file[1], "status code: 400") {
-		// Caused by cf cli api connection issues
-		PrintSlice(file)
-		d.failedDownloads = append(d.failedDownloads, errMsg)
-		return errors.New("400")
-		// TODO: add these files to a retry queue and retry downloading them at the end. (see feature branch)
-	} else if strings.Contains(file[1], "FAILED") {
-		// some files are inaccesible from the cf files (permission issues) this is rare but we need to
-		// alert users if it occurs. It usually happens in vendor files.
-		d.failedDownloads = append(d.failedDownloads, errMsg)
-		if d.verbose {
-			fmt.Println(errMsg)
+			// check for other errors
+			if err != nil && len(file) >= 2 {
+				PrintSlice(file)
+			}
 		}
 		return errors.New("download failed")
-	} else {
-		// check for other errors
-		if err != nil {
-			PrintSlice(file)
-		}
-		check(err, "Error CD1: [cf files "+d.appName+" "+readPath+"]")
 	}
-	return nil
 }
 
 func (d *downloader) GetFilesDownloadedCount() int {
