@@ -105,18 +105,18 @@ func (p *parser) GetDirectory(readPath string) (string, string) {
 		}
 		return dirSlice[2], "OK"
 	} else {
-		messsage := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", p.onWindows)
+		message := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", p.onWindows)
 
-		p.failedDownloads = append(p.failedDownloads, messsage)
+		p.failedDownloads = append(p.failedDownloads, message)
 
 		if p.verbose {
-			fmt.Println(messsage)
+			fmt.Println(message)
+			// check for other errors
+			if err != nil {
+				PrintSlice(dirSlice)
+			}
 		}
 
-		// check for other errors
-		if err != nil {
-			PrintSlice(dirSlice)
-		}
 		return string(output), "Failed"
 	}
 }
