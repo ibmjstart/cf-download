@@ -66,10 +66,7 @@ func (p *parser) ExecParseDir(readPath string) ([]string, []string) {
 		}
 		return files, dirs
 	} else {
-		//error occured, error message displayed by GetDirectory()
-		if len(dir) > 0 {
-			fmt.Println(dir)
-		}
+		//error was already logged in GetDirectory if --verbose was used
 		if readPath == "/" {
 			os.Exit(1)
 		}
