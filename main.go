@@ -343,7 +343,7 @@ func (c *DownloadPlugin) GetMetadata() plugin.PluginMetadata {
 		Name: "cf-download",
 		Version: plugin.VersionType{
 			Major: 1,
-			Minor: 0,
+			Minor: 1,
 			Build: 0,
 		},
 		Commands: []plugin.Command{
@@ -356,9 +356,9 @@ func (c *DownloadPlugin) GetMetadata() plugin.PluginMetadata {
 				UsageDetails: plugin.Usage{
 					Usage: "cf download APP_NAME [PATH] [--overwrite] [--verbose] [--omit ommited_paths] [-i instance_num]",
 					Options: map[string]string{
-						"overwrite":             "Overwrite existing files",
-						"verbose":               "Verbose output",
-						"omit \"path/to/file\"": "Omit directories or files (delimited by semicolons)",
+						"-overwrite":             "Overwrite existing files",
+						"-verbose":               "Verbose output",
+						"-omit \"path/to/file\"": "Omit directories or files (delimited by semicolons)",
 						"i": "Instance",
 					},
 				},

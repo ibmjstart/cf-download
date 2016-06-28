@@ -9,14 +9,14 @@
   $ cf add-plugin-repo CF-Community http://plugins.cloudfoundry.org/
   $ cf install-plugin cf-download -r CF-Community
   ```
-  
+
 ##### Install from binary
 1. download binary (See Download Section below)
 2. **cd path/to/downloaded/binary**
 3. If you've already installed the plugin and are updating, you must first run **cf uninstall-plugin cf-download**
-4. Then install the plugin with **cf install-plugin cf-download** 
+4. Then install the plugin with **cf install-plugin cf-download**
 	* If you get a permission error run: **chmod +x cf-download** on the binary
-5. Verify the plugin installed by looking for it with **cf plugins** 
+5. Verify the plugin installed by looking for it with **cf plugins**
 
 ##### Download Binaries
 
@@ -43,17 +43,17 @@ The path argument is optional but if included, should come immediately after the
 
 ***
 
-## Improving performance: 
+## Improving performance:
 Projects usually have a enormous amount of dependencies installed by package managers, we highly recommend not downloading these dependencies. Using the --omit flag, you can avoid downloading these dependencies and significantly reduce download times.
 
 #### Java/Liberty:
-We highly reccomend you not download the app/.java and app/.liberty directories in your java/liberty projects. They are very large and contain many permission issues the prevent proper downloads. It is best to omit them. 
+We highly recommend you not download the app/.java and app/.liberty directories in your java/liberty projects. They are very large and contain many permission issues the prevent proper downloads. It is best to omit them.
 
 #### Node.js:
-npm will download dependencies to the node_modules folder in the app directory. By omitting app/node_modules you will greatly decrease download times. You can run npm install locally on your package.json after completing a download. 
+npm will download dependencies to the node_modules folder in the app directory. By omitting app/node_modules you will greatly decrease download times. You can run npm install locally on your package.json after completing a download.
 
 #### PHP:
-Composer is a popular PHP package manager that installs dependencies to a folder called vendors. It is reccomended you omit this folder from the download to ensure a quick and error free download. example: **--omit <path_to_vendors>/vendors** 
+Composer is a popular PHP package manager that installs dependencies to a folder called vendors. It is recommended you omit this folder from the download to ensure a quick and error free download. example: **--omit <path_to_vendors>/vendors**
 
 ***
 
@@ -62,7 +62,7 @@ Composer is a popular PHP package manager that installs dependencies to a folder
 All directories and files within the .cfignore file will be omitted. Each entry should be on its own line and that the .cfignore file must be in the same working directory. Instead of using many --omit parameters, it's easier to use the .cfignore file.
 
 #### Stuck Download:  
-In case your download seems to be stuck, we recommend terminating and redownloading using the --verbose flag. When the download stalls you can see which files were being downloaded and what could be causing the issue. 
+In case your download seems to be stuck, we recommend terminating and redownloading using the --verbose flag. When the download stalls you can see which files were being downloaded and what could be causing the issue. It is also important to note that you do not always need to pull every file from your application. Many files can be found elsewhere and should be omitted. These files are usually a part of a buildpack or dependencies that can easily be installed using a package manager. Refer back to the "Improving performance" section for suggestions on which files can be omitted.
 
 #### Downloading Jar files:
 Projects containing jar files can trigger antivirus software while being downloaded. you can either temporarily disable network antivirus protection or exclude directories containing jar files.
