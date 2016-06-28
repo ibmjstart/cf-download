@@ -143,7 +143,7 @@ func (d *downloader) WriteFile(readPath, writePath string, output []byte, err er
 
 		// there is currently an issue open to change the behavior for empty files
 		// https://github.com/cloudfoundry/cli/issues/869
-		if strings.Compare(fileAsString, "\nNo files found\n") == 0 {
+		if strings.Contains(fileAsString, "No files found") {
 			fileAsString = ""
 		}
 

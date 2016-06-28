@@ -100,7 +100,7 @@ func (p *parser) GetDirectory(readPath string) (string, string) {
 	}
 
 	if len(dirSlice) >= 2 && strings.Contains(dirSlice[1], "OK") {
-		if strings.Compare(dirSlice[2], "\nNo files found\n") == 0 {
+		if strings.Contains(dirSlice[2], "No files found") {
 			return "", "noFiles"
 		}
 		return dirSlice[2], "OK"

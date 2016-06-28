@@ -81,7 +81,7 @@ var _ = Describe("Downloader tests", func() {
 
 				// restore Stdout
 				os.Stdout = oldStdout
-				Expect(err.Error()).To(Equal("download failed (empty)"))
+				Expect(err.Error()).To(Equal("download failed"))
 			})
 		})
 
@@ -99,7 +99,7 @@ var _ = Describe("Downloader tests", func() {
 
 				// restore Stdout
 				os.Stdout = oldStdout
-				Expect(err.Error()).To(Equal("502"))
+				Expect(err.Error()).To(Equal("download failed"))
 			})
 		})
 
@@ -117,7 +117,7 @@ var _ = Describe("Downloader tests", func() {
 
 				// restore Stdout
 				os.Stdout = oldStdout
-				Expect(err.Error()).To(Equal("502"))
+				Expect(err.Error()).To(Equal("download failed"))
 			})
 		})
 
@@ -135,7 +135,7 @@ var _ = Describe("Downloader tests", func() {
 
 				// restore Stdout
 				os.Stdout = oldStdout
-				Expect(err.Error()).To(Equal("400"))
+				Expect(err.Error()).To(Equal("download failed"))
 			})
 		})
 

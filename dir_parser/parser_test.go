@@ -60,17 +60,17 @@ var _ = Describe("DirParser", func() {
 		It("test unkown api error", func() {
 			cmdExec.SetOutput("FAILED\nServer error, status code: 500, error code: 10001, message: An unknown error occurred.\n")
 			_, status := p.GetDirectory("")
-			Ω(status).To(Equal("unknownError"))
+			Ω(status).To(Equal("Failed"))
 		})
 		It("test when app is stopped", func() {
 			cmdExec.SetOutput("Getting files for app\nFAILED\nerror code: 190001")
 			_, status := p.GetDirectory("")
-			Ω(status).To(Equal("appUnavailable"))
+			Ω(status).To(Equal("Failed"))
 		})
 		It("test when 502 error occurs", func() {
 			cmdExec.SetOutput("Getting files for app\nstatus code: 502\n ")
 			_, status := p.GetDirectory("")
-			Ω(status).To(Equal("502"))
+			Ω(status).To(Equal("Failed"))
 		})
 	})
 })
