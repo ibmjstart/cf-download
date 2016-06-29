@@ -1,11 +1,10 @@
 package main_test
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
+	"path/filepath"
 
 	. "github.com/ibmjstart/cf-download"
 
@@ -92,6 +91,7 @@ var _ = Describe("CfDownload", func() {
 			args[2] = "app/src/node"
 			args[3] = "--verbose"
 			currentDirectory, _ := os.Getwd()
+			currentDirectory = filepath.ToSlash(currentDirectory)
 			rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
@@ -106,6 +106,7 @@ var _ = Describe("CfDownload", func() {
 			args[2] = "/app/src/node/"
 			args[3] = "--verbose"
 			currentDirectory, _ := os.Getwd()
+			currentDirectory = filepath.ToSlash(currentDirectory)
 			rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
@@ -120,6 +121,7 @@ var _ = Describe("CfDownload", func() {
 			args[2] = "app/src/node/"
 			args[3] = "--verbose"
 			currentDirectory, _ := os.Getwd()
+			currentDirectory = filepath.ToSlash(currentDirectory)
 			rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
@@ -134,6 +136,7 @@ var _ = Describe("CfDownload", func() {
 			args[2] = "/app/src/node"
 			args[3] = "--verbose"
 			currentDirectory, _ := os.Getwd()
+			currentDirectory = filepath.ToSlash(currentDirectory)
 			rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
@@ -147,75 +150,39 @@ var _ = Describe("CfDownload", func() {
 	Describe("test error catching in run() [MUST HAVE PLUGIN INSTALLED TO PASS]", func() {
 		Context("when appname begins with -- or -", func() {
 			It("Should print error, because user has flags before appname", func() {
-				oldStdout := os.Stdout
-				file, _ := os.Create("/tmp/dat")
-				os.Stdout = file
 				cmd := exec.Command("cf", "download", "--appname")
 				output, _ := cmd.CombinedOutput()
-				fmt.Printf("%s", output)
-				file.Close()
-				os.Stdout = oldStdout
-				dat, _ := ioutil.ReadFile("/tmp/dat")
-				Expect(strings.Contains(string(dat), "Error: App name begins with '-' or '--'. correct flag usage: 'cf download APP_NAME [--flags]'")).To(BeTrue())
+				Expect(strings.Contains(string(output), "Error: App name begins with '-' or '--'. correct flag usage: 'cf download APP_NAME [--flags]'")).To(BeTrue())
 			})
 
 			It("Should print error, because user not specified an appName", func() {
-				oldStdout := os.Stdout
-				file, _ := os.Create("/tmp/dat")
-				os.Stdout = file
 				cmd := exec.Command("cf", "download")
 				output, _ := cmd.CombinedOutput()
-				fmt.Printf("%s", output)
-				file.Close()
-				os.Stdout = oldStdout
-				dat, _ := ioutil.ReadFile("/tmp/dat")
-
-				Expect(strings.Contains(string(dat), "Error: Missing App Name")).To(BeTrue())
+				Expect(strings.Contains(string(output), "Error: Missing App Name")).To(BeTrue())
 			})
 
 			It("Should print error, test overwrite flag functionality", func() {
 				// create directory that needs to be overwritten
 				os.Mkdir("test-download", 755)
 
-				oldStdout := os.Stdout
-				file, _ := os.Create("/tmp/dat")
-				os.Stdout = file
 				cmd := exec.Command("cf", "download", "test")
 				output, _ := cmd.CombinedOutput()
-				fmt.Printf("%s", output)
-				file.Close()
-				os.Stdout = oldStdout
-				dat, _ := ioutil.ReadFile("/tmp/dat")
-				Expect(strings.Contains(string(dat), "already Exists and is not an empty directory.")).To(BeTrue())
+				Expect(strings.Contains(string(output), "already Exists and is not an empty directory.")).To(BeTrue())
 
 				// clean up
 				os.RemoveAll("test-download")
 			})
 
 			It("Should print error, instance flag not int", func() {
-				oldStdout := os.Stdout
-				file, _ := os.Create("/tmp/dat")
-				os.Stdout = file
 				cmd := exec.Command("cf", "download", "test", "-i", "hello")
 				output, _ := cmd.CombinedOutput()
-				fmt.Printf("%s", output)
-				file.Close()
-				os.Stdout = oldStdout
-				dat, _ := ioutil.ReadFile("/tmp/dat")
-				Expect(strings.Contains(string(dat), "Error:  invalid value ")).To(BeTrue())
+				Expect(strings.Contains(string(output), "Error:  invalid value ")).To(BeTrue())
 			})
 
 			It("Should print error, invalid flag", func() {
-				oldStdout := os.Stdout
-				file, _ := os.Create("/tmp/dat")
-				os.Stdout = file
 				cmd := exec.Command("cf", "download", "test", "-ooverwrite")
 				output, _ := cmd.CombinedOutput()
-				fmt.Printf("%s", output)
-				file.Close()
-				os.Stdout = oldStdout
-				dat, _ := ioutil.ReadFile("/tmp/dat")
-				Expect(strings.Contains(string(dat), "Error:  flag provided but not defined: -ooverwrite")).To(BeTrue())
+				Expect(strings.Contains(string(output), "Error:  flag provided but not defined: -ooverwrite")).To(BeTrue())
 			})
 		})
 	})
