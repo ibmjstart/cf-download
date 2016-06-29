@@ -173,7 +173,6 @@ var _ = Describe("Downloader tests", func() {
 	*	will be deleted as to not interfere with the next test. This not only test the entire download functionality but also the
 	*	parsing and all flags.
 	 */
-
 	Describe("Test Download() Function", func() {
 		Context("download the entire directory (no filter)", func() {
 			It("should download and write the files to the testFiles Directory", func() {
@@ -200,7 +199,7 @@ var _ = Describe("Downloader tests", func() {
 
 				rootFile, _ := os.Open(writePath + "/testFiles/")
 				rootContents, _ := rootFile.Readdir(0)
-
+				rootFile.Close()
 				Ω(rootContents[0].Name()).To(Equal("app_content"))
 				Ω(rootContents[1].Name()).To(Equal("ignore.go"))
 				Ω(rootContents[2].Name()).To(Equal("ignoreDir"))
@@ -210,6 +209,7 @@ var _ = Describe("Downloader tests", func() {
 				Ω(rootContents[0].IsDir()).To(BeTrue())
 				appContentFolder, _ := os.Open(writePath + "/testFiles/" + rootContents[0].Name())
 				appContents, _ := appContentFolder.Readdir(0)
+				appContentFolder.Close()
 				Ω(appContents[0].Name()).To(Equal("app.go"))
 				Ω(appContents[1].Name()).To(Equal("server.go"))
 
@@ -245,6 +245,7 @@ var _ = Describe("Downloader tests", func() {
 
 				rootFile, _ := os.Open(writePath + "/testFiles/")
 				rootContents, _ := rootFile.Readdir(0)
+				rootFile.Close()
 				Ω(rootContents[0].Name()).To(Equal("app_content"))
 				Ω(rootContents[1].Name()).To(Equal("notignored.go"))
 
@@ -252,6 +253,7 @@ var _ = Describe("Downloader tests", func() {
 				Ω(rootContents[0].IsDir()).To(BeTrue())
 				appContentFolder, _ := os.Open(writePath + "/testFiles/" + rootContents[0].Name())
 				appContents, _ := appContentFolder.Readdir(0)
+				appContentFolder.Close()
 				Ω(appContents[0].Name()).To(Equal("app.go"))
 				Ω(appContents[1].Name()).To(Equal("server.go"))
 
@@ -261,5 +263,4 @@ var _ = Describe("Downloader tests", func() {
 			})
 		})
 	})
-
 })
