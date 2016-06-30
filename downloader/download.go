@@ -157,6 +157,9 @@ func (d *downloader) WriteFile(readPath, writePath string, output []byte, err er
 		} else {
 			errMsg := createMessage(" Write Error: '"+readPath+"' encountered error while writing to local file", "yellow", d.onWindows)
 			d.failedDownloads = append(d.failedDownloads, errMsg)
+			if d.verbose {
+				fmt.Println(errMsg)
+			}
 		}
 
 	}
