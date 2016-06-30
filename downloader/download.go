@@ -159,6 +159,7 @@ func (d *downloader) WriteFile(readPath, writePath string, output []byte, err er
 			d.failedDownloads = append(d.failedDownloads, errMsg)
 			if d.verbose {
 				fmt.Println(errMsg)
+				fmt.Println(err)
 			}
 		}
 
