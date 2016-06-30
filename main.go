@@ -14,20 +14,20 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
-	"os/exec"
-	"runtime"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
-	"path/filepath"
 	"github.com/cloudfoundry/cli/plugin"
 	"github.com/ibmjstart/cf-download/cmd_exec"
 	"github.com/ibmjstart/cf-download/dir_parser"
 	"github.com/ibmjstart/cf-download/downloader"
 	"github.com/ibmjstart/cf-download/filter"
 	"github.com/mgutz/ansi"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 /*
@@ -225,18 +225,18 @@ func consoleWriter(quit chan int) {
 		filesDownloaded := dloader.GetFilesDownloadedCount()
 		select {
 		case <-quit:
-			fmt.Printf("\rFiles completed: %d ", filesDownloaded)
+			fmt.Printf("\rFiles downloaded: %d ", filesDownloaded)
 			return
 		default:
 			switch count = (count + 1) % 4; count {
 			case 0:
-				fmt.Printf("\rFiles completed: %d \\ ", filesDownloaded)
+				fmt.Printf("\rFiles downloaded: %d \\ ", filesDownloaded)
 			case 1:
-				fmt.Printf("\rFiles completed: %d | ", filesDownloaded)
+				fmt.Printf("\rFiles downloaded: %d | ", filesDownloaded)
 			case 2:
-				fmt.Printf("\rFiles completed: %d / ", filesDownloaded)
+				fmt.Printf("\rFiles downloaded: %d / ", filesDownloaded)
 			case 3:
-				fmt.Printf("\rFiles completed: %d --", filesDownloaded)
+				fmt.Printf("\rFiles downloaded: %d --", filesDownloaded)
 			}
 			time.Sleep(350 * time.Millisecond)
 		}
@@ -257,7 +257,7 @@ func PrintCompletionInfo(start time.Time, onWindows bool) {
 	}
 
 	if len(failedDownloads) > 100 {
-		fmt.Println("\nYou had over 100 failed downloads, we highly recommend you omit the failed file'sopen parent directories using the omit flag.\n")
+		fmt.Println("\nYou had over 100 failed downloads, we highly recommend you omit the failed file's open parent directories using the omit flag.\n")
 	}
 
 	// display runtime

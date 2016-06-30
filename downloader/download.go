@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
-	"path/filepath"
+	"time"
 
 	"github.com/ibmjstart/cf-download/cmd_exec"
 	"github.com/ibmjstart/cf-download/dir_parser"
@@ -128,16 +129,6 @@ func (d *downloader) WriteFile(readPath, writePath string, output []byte, err er
 	// check for invalid files or download issues
 	downloadErr := d.CheckDownload(readPath, file, err)
 
-	if d.verbose {
-		if downloadErr == nil {
-			fmt.Printf("Writing file: %s\n", readPath)
-		}
-	} else {
-		// increment download counter for commandline display
-		// see consoleWriter() in main.go
-		d.filesDownloaded++
-	}
-
 	if downloadErr == nil {
 		fileAsString := file[2]
 
@@ -147,15 +138,34 @@ func (d *downloader) WriteFile(readPath, writePath string, output []byte, err er
 			fileAsString = ""
 		}
 
+		if d.verbose {
+			fmt.Printf("Writing file: %s\n", readPath)
+		}
+
 		// write downloaded file to writePath
 		err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
+
+		for i := 1; i <= 32 && err != nil; i *= 2 {
+			time.Sleep(time.Duration(i) * time.Second)
+			err = ioutil.WriteFile(writePath, []byte(fileAsString), 0644)
+		}
+
+		if err == nil {
+			// increment download counter for commandline display
+			// see consoleWriter() in main.go
+			d.filesDownloaded++
+		} else {
+			errMsg := createMessage(" Write Error: '"+readPath+"' encountered error while writing to local file", "yellow", d.onWindows)
+			d.failedDownloads = append(d.failedDownloads, errMsg)
+		}
+
 	}
 
 	return err
 }
 
 func (d *downloader) CheckDownload(readPath string, file []string, err error) error {
-	if len(file) >= 2 && strings.Contains(file[1], "OK"){
+	if len(file) >= 2 && strings.Contains(file[1], "OK") {
 		return nil
 	} else {
 		errMsg := createMessage(" Server Error: '"+readPath+"' not downloaded", "yellow", d.onWindows)
