@@ -42,6 +42,7 @@ type flagVal struct {
 	OverWrite_flag bool
 	Instance_flag  string
 	Verbose_flag   bool
+	File_flag      bool
 }
 
 var (
@@ -95,7 +96,7 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 	workingDir, err := os.Getwd()
 	check(err, "Called by: Getwd")
-	rootWorkingDirectoryServer, startingPathServer := GetDirectoryContext(workingDir, args)
+	rootWorkingDirectoryServer, startingPathServer := GetDirectoryContext(workingDir, args, flagVals.File_flag)
 	rootWorkingDirectoryLocal := filepath.FromSlash(rootWorkingDirectoryServer)
 
 	// ensure cf_trace is disabled, otherwise parsing breaks
@@ -114,9 +115,6 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	parser = dir_parser.NewParser(cmdExec, appName, flagVals.Instance_flag, onWindows, flagVals.Verbose_flag)
 	dloader = downloader.NewDownloader(cmdExec, &wg, appName, flagVals.Instance_flag, rootWorkingDirectoryServer, flagVals.Verbose_flag, onWindows)
 
-	// parse the directory
-	files, dirs := parser.ExecParseDir(startingPathServer)
-
 	// stop consoleWriter
 	quit := make(chan int)
 
@@ -125,9 +123,20 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		go consoleWriter(quit)
 	}
 
-	// Start the download
-	wg.Add(1)
-	dloader.Download(files, dirs, startingPathServer, rootWorkingDirectoryLocal, filterList)
+	if flagVals.File_flag {
+		err := os.MkdirAll(strings.TrimSuffix(rootWorkingDirectoryLocal, filepath.Base(rootWorkingDirectoryLocal)), 0755)
+		check(err, "Error D1: failed to create directory.")
+
+		wg.Add(1)
+		dloader.DownloadFile(startingPathServer, rootWorkingDirectoryLocal, &wg)
+	} else {
+		// parse the directory
+		files, dirs := parser.ExecParseDir(startingPathServer)
+
+		// Start the download
+		wg.Add(1)
+		dloader.Download(files, dirs, startingPathServer, rootWorkingDirectoryLocal, filterList)
+	}
 
 	// Wait for download goRoutines
 	wg.Wait()
@@ -152,7 +161,7 @@ func getFailedDownloads() {
 	failedDownloads = append(parser.GetFailedDownloads(), dloader.GetFailedDownloads()...)
 }
 
-func GetDirectoryContext(workingDir string, copyOfArgs []string) (string, string) {
+func GetDirectoryContext(workingDir string, copyOfArgs []string, isFile bool) (string, string) {
 	rootWorkingDirectory := workingDir + "/" + appName + "-download/"
 
 	// append path if provided as arguement
@@ -169,6 +178,12 @@ func GetDirectoryContext(workingDir string, copyOfArgs []string) (string, string
 		startingPath = "/" + startingPath
 	}
 
+	// ensure files do not have trailing backslash
+	if isFile {
+		startingPath = strings.TrimSuffix(startingPath, "/")
+		rootWorkingDirectory = strings.TrimSuffix(rootWorkingDirectory, "/")
+	}
+
 	return rootWorkingDirectory, startingPath
 }
 
@@ -182,6 +197,7 @@ func ParseFlags(args []string) flagVal {
 	overWritep := f1.Bool("overwrite", false, "--overwrite")
 	instancep := f1.Int("i", 0, "-i [instanceNum]")
 	verbosep := f1.Bool("verbose", false, "--verbose")
+	filep := f1.Bool("file", false, "--file")
 
 	var err error
 	if len(args) > 2 && !strings.HasPrefix(args[2], "-") { // if there is a path as in 'cf download path' vs. 'cf download'
@@ -210,6 +226,7 @@ func ParseFlags(args []string) flagVal {
 		OverWrite_flag: bool(*overWritep),
 		Instance_flag:  strconv.Itoa(*instancep),
 		Verbose_flag:   *verbosep,
+		File_flag:      *filep,
 	}
 
 	return flagVals
@@ -354,9 +371,10 @@ func (c *DownloadPlugin) GetMetadata() plugin.PluginMetadata {
 				// UsageDetails is optional
 				// It is used to show help of usage of each command
 				UsageDetails: plugin.Usage{
-					Usage: "cf download APP_NAME [PATH] [--overwrite] [--verbose] [--omit ommited_paths] [-i instance_num]",
+					Usage: "cf download APP_NAME [PATH] [--overwrite] [--file] [--verbose] [--omit ommited_paths] [-i instance_num]",
 					Options: map[string]string{
 						"-overwrite":             "Overwrite existing files",
+						"-file":                  "Specify a file",
 						"-verbose":               "Verbose output",
 						"-omit \"path/to/file\"": "Omit directories or files (delimited by semicolons)",
 						"i": "Instance",

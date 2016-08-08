@@ -3,8 +3,8 @@ package main_test
 import (
 	"os"
 	"os/exec"
-	"strings"
 	"path/filepath"
+	"strings"
 
 	. "github.com/ibmjstart/cf-download"
 
@@ -31,6 +31,22 @@ var _ = Describe("CfDownload", func() {
 
 				flagVals := ParseFlags(args)
 				Expect(flagVals.OverWrite_flag).To(BeTrue())
+				Expect(flagVals.File_flag).To(BeFalse())
+				Expect(flagVals.Instance_flag).To(Equal("0"))
+				Expect(flagVals.Verbose_flag).To(BeFalse())
+				Expect(flagVals.Omit_flag).To(Equal(""))
+			})
+		})
+
+		Context("Check if file flag works", func() {
+			It("Should set the file_flag", func() {
+				args[0] = "download"
+				args[1] = "app"
+				args[2] = "--file"
+
+				flagVals := ParseFlags(args)
+				Expect(flagVals.OverWrite_flag).To(BeFalse())
+				Expect(flagVals.File_flag).To(BeTrue())
 				Expect(flagVals.Instance_flag).To(Equal("0"))
 				Expect(flagVals.Verbose_flag).To(BeFalse())
 				Expect(flagVals.Omit_flag).To(Equal(""))
@@ -45,6 +61,7 @@ var _ = Describe("CfDownload", func() {
 
 				flagVals := ParseFlags(args)
 				Expect(flagVals.OverWrite_flag).To(BeFalse())
+				Expect(flagVals.File_flag).To(BeFalse())
 				Expect(flagVals.Instance_flag).To(Equal("0"))
 				Expect(flagVals.Verbose_flag).To(BeTrue())
 				Expect(flagVals.Omit_flag).To(Equal(""))
@@ -60,6 +77,7 @@ var _ = Describe("CfDownload", func() {
 
 				flagVals := ParseFlags(args)
 				Expect(flagVals.OverWrite_flag).To(BeFalse())
+				Expect(flagVals.File_flag).To(BeFalse())
 				Expect(flagVals.Instance_flag).To(Equal("3"))
 				Expect(flagVals.Verbose_flag).To(BeFalse())
 				Expect(flagVals.Omit_flag).To(Equal(""))
@@ -75,6 +93,7 @@ var _ = Describe("CfDownload", func() {
 
 				flagVals := ParseFlags(args)
 				Expect(flagVals.OverWrite_flag).To(BeFalse())
+				Expect(flagVals.File_flag).To(BeFalse())
 				Expect(flagVals.Instance_flag).To(Equal("0"))
 				Expect(flagVals.Verbose_flag).To(BeFalse())
 				Expect(flagVals.Omit_flag).To(Equal("app/node_modules"))
@@ -92,7 +111,7 @@ var _ = Describe("CfDownload", func() {
 			args[3] = "--verbose"
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
+			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
 
@@ -107,7 +126,7 @@ var _ = Describe("CfDownload", func() {
 			args[3] = "--verbose"
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
+			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
 
@@ -122,7 +141,7 @@ var _ = Describe("CfDownload", func() {
 			args[3] = "--verbose"
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
+			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
 
@@ -137,12 +156,27 @@ var _ = Describe("CfDownload", func() {
 			args[3] = "--verbose"
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			rootWD, startingPath := GetDirectoryContext(currentDirectory, args)
+			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
 
 			Expect(correctSuffix).To(BeTrue())
 			Expect(startingPath).To(Equal("/app/src/node/"))
+		})
+
+		It("should return /app/src/file.html for startingPath (--file flag specified)", func() {
+			args[0] = "download"
+			args[1] = "app_name"
+			args[2] = "/app/src/file.html"
+			args[3] = "--file"
+			currentDirectory, _ := os.Getwd()
+			currentDirectory = filepath.ToSlash(currentDirectory)
+			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, true)
+
+			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/file.html")
+
+			Expect(correctSuffix).To(BeTrue())
+			Expect(startingPath).To(Equal("/app/src/file.html"))
 		})
 
 	})
