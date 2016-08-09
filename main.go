@@ -96,8 +96,8 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 	workingDir, err := os.Getwd()
 	check(err, "Called by: Getwd")
-	rootWorkingDirectoryServer, startingPathServer := GetDirectoryContext(workingDir, args, flagVals.File_flag)
-	rootWorkingDirectoryLocal := filepath.FromSlash(rootWorkingDirectoryServer)
+	rootWorkingDirectoryLocal, rootWorkingDirectoryServer, startingPathServer := GetDirectoryContext(workingDir, args, flagVals.File_flag)
+	rootWorkingDirectoryLocal = filepath.FromSlash(rootWorkingDirectoryLocal)
 
 	// ensure cf_trace is disabled, otherwise parsing breaks
 	if os.Getenv("CF_TRACE") == "true" {
@@ -167,8 +167,9 @@ func getFailedDownloads() {
 	failedDownloads = append(parser.GetFailedDownloads(), dloader.GetFailedDownloads()...)
 }
 
-func GetDirectoryContext(workingDir string, copyOfArgs []string, isFile bool) (string, string) {
+func GetDirectoryContext(workingDir string, copyOfArgs []string, isFile bool) (string, string, string) {
 	rootWorkingDirectory := workingDir + "/"
+	localPath := rootWorkingDirectory
 
 	// append path if provided as arguement
 	startingPath := "/"
@@ -180,19 +181,22 @@ func GetDirectoryContext(workingDir string, copyOfArgs []string, isFile bool) (s
 		if strings.HasPrefix(startingPath, "/") {
 			startingPath = strings.TrimPrefix(startingPath, "/")
 		}
+		localPath += filepath.Base(startingPath) + "/"
 		rootWorkingDirectory += startingPath
 		startingPath = "/" + startingPath
 	} else {
 		rootWorkingDirectory += appName + "/"
+		localPath = rootWorkingDirectory
 	}
 
 	// ensure files do not have trailing backslash
 	if isFile {
+		localPath = strings.TrimSuffix(localPath, "/")
 		startingPath = strings.TrimSuffix(startingPath, "/")
 		rootWorkingDirectory = strings.TrimSuffix(rootWorkingDirectory, "/")
 	}
 
-	return rootWorkingDirectory, startingPath
+	return localPath, rootWorkingDirectory, startingPath
 }
 
 func ParseFlags(args []string) flagVal {

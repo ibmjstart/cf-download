@@ -110,10 +110,14 @@ var _ = Describe("CfDownload", func() {
 			args[3] = "--verbose"
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
+			localPath, rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app/src/node/")
 			Expect(correctSuffix).To(BeTrue())
+
+			correctSuffix = strings.HasSuffix(localPath, "/cf-download/node/")
+			Expect(correctSuffix).To(BeTrue())
+
 			Expect(startingPath).To(Equal("/app/src/node/"))
 		})
 
@@ -124,11 +128,14 @@ var _ = Describe("CfDownload", func() {
 			args[3] = "--verbose"
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
+			localPath, rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app/src/node/")
-
 			Expect(correctSuffix).To(BeTrue())
+
+			correctSuffix = strings.HasSuffix(localPath, "/cf-download/node/")
+			Expect(correctSuffix).To(BeTrue())
+
 			Expect(startingPath).To(Equal("/app/src/node/"))
 		})
 
@@ -139,11 +146,14 @@ var _ = Describe("CfDownload", func() {
 			args[3] = "--verbose"
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
+			localPath, rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app/src/node/")
-
 			Expect(correctSuffix).To(BeTrue())
+
+			correctSuffix = strings.HasSuffix(localPath, "/cf-download/node/")
+			Expect(correctSuffix).To(BeTrue())
+
 			Expect(startingPath).To(Equal("/app/src/node/"))
 		})
 
@@ -154,11 +164,14 @@ var _ = Describe("CfDownload", func() {
 			args[3] = "--verbose"
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
+			localPath, rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app/src/node/")
-
 			Expect(correctSuffix).To(BeTrue())
+
+			correctSuffix = strings.HasSuffix(localPath, "/cf-download/node/")
+			Expect(correctSuffix).To(BeTrue())
+
 			Expect(startingPath).To(Equal("/app/src/node/"))
 		})
 
@@ -169,11 +182,14 @@ var _ = Describe("CfDownload", func() {
 			args[3] = "--file"
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, true)
+			localPath, rootWD, startingPath := GetDirectoryContext(currentDirectory, args, true)
 
 			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app/src/file.html")
-
 			Expect(correctSuffix).To(BeTrue())
+
+			correctSuffix = strings.HasSuffix(localPath, "/cf-download/file.html")
+			Expect(correctSuffix).To(BeTrue())
+
 			Expect(startingPath).To(Equal("/app/src/file.html"))
 		})
 
