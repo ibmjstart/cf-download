@@ -30,7 +30,8 @@
 
 cf download APP_NAME [PATH] [--overwrite] [--file] [--verbose] [--omit omitted_path] [-i instance]
 
-The downloaded app files will put put in a new directory "APP_NAME-download" that's created within your working directory.
+The downloaded app files will be put in a new directory "APP_NAME" that's created within your working directory.
+If "PATH" is specified, the directory or file specified will be placed directly in your working directory.
 
 ### Path Argument
 The path argument is optional but if included, should come immediately after the app name. It determines the starting directory that all the files will be downloaded from. By default, the entire app is downloaded starting from the root. However if desired, one could use **some/starting/path** to only download files within the **some/starting/path** directory. Additionally, the path can point to a single file to be downloaded if the **--file** flag is specified. Note: this works similarly to "cf files [path]".

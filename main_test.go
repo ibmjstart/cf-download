@@ -1,12 +1,11 @@
 package main_test
 
 import (
+	. "github.com/ibmjstart/cf-download"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
-
-	. "github.com/ibmjstart/cf-download"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -113,8 +112,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
 
-			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
-
+			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app/src/node/")
 			Expect(correctSuffix).To(BeTrue())
 			Expect(startingPath).To(Equal("/app/src/node/"))
 		})
@@ -128,7 +126,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
 
-			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app/src/node/")
 
 			Expect(correctSuffix).To(BeTrue())
 			Expect(startingPath).To(Equal("/app/src/node/"))
@@ -143,7 +141,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
 
-			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app/src/node/")
 
 			Expect(correctSuffix).To(BeTrue())
 			Expect(startingPath).To(Equal("/app/src/node/"))
@@ -158,7 +156,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, false)
 
-			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/node/")
+			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app/src/node/")
 
 			Expect(correctSuffix).To(BeTrue())
 			Expect(startingPath).To(Equal("/app/src/node/"))
@@ -173,7 +171,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			rootWD, startingPath := GetDirectoryContext(currentDirectory, args, true)
 
-			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app-download/app/src/file.html")
+			correctSuffix := strings.HasSuffix(rootWD, "/cf-download/app/src/file.html")
 
 			Expect(correctSuffix).To(BeTrue())
 			Expect(startingPath).To(Equal("/app/src/file.html"))
@@ -197,14 +195,15 @@ var _ = Describe("CfDownload", func() {
 
 			It("Should print error, test overwrite flag functionality", func() {
 				// create directory that needs to be overwritten
-				os.Mkdir("test-download", 755)
+				os.Mkdir("test", 755)
 
 				cmd := exec.Command("cf", "download", "test")
 				output, _ := cmd.CombinedOutput()
-				Expect(strings.Contains(string(output), "already Exists and is not an empty directory.")).To(BeTrue())
 
 				// clean up
-				os.RemoveAll("test-download")
+				os.RemoveAll("test")
+
+				Expect(strings.Contains(string(output), "already exists.")).To(BeTrue())
 			})
 
 			It("Should print error, instance flag not int", func() {

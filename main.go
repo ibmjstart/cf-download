@@ -107,8 +107,14 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 	// prevent overwriting files
 	if Exists(rootWorkingDirectoryLocal) && flagVals.OverWrite_flag == false {
-		fmt.Println("\nError: destination path", rootWorkingDirectoryLocal, "already Exists and is not an empty directory.\n\nDelete it or use 'cf download APP_NAME --overwrite'")
+		fmt.Println("\nError: destination path", rootWorkingDirectoryLocal, "already exists.\n\nDelete it or rerun the command with the '--overwrite' flag.")
 		os.Exit(1)
+	}
+
+	// remove files to be overwritten
+	if flagVals.OverWrite_flag {
+		err := os.RemoveAll(rootWorkingDirectoryLocal)
+		check(err, "Cannot remove "+rootWorkingDirectoryLocal+" for overwrite.")
 	}
 
 	cmdExec := cmd_exec.NewCmdExec()
@@ -162,7 +168,7 @@ func getFailedDownloads() {
 }
 
 func GetDirectoryContext(workingDir string, copyOfArgs []string, isFile bool) (string, string) {
-	rootWorkingDirectory := workingDir + "/" + appName + "-download/"
+	rootWorkingDirectory := workingDir + "/"
 
 	// append path if provided as arguement
 	startingPath := "/"
@@ -176,6 +182,8 @@ func GetDirectoryContext(workingDir string, copyOfArgs []string, isFile bool) (s
 		}
 		rootWorkingDirectory += startingPath
 		startingPath = "/" + startingPath
+	} else {
+		rootWorkingDirectory += appName + "/"
 	}
 
 	// ensure files do not have trailing backslash
