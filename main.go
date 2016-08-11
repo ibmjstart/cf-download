@@ -45,6 +45,13 @@ type flagVal struct {
 	File_flag      bool
 }
 
+// contains local and server paths
+type pathVal struct {
+	RootWorkingDirectoryLocal  string
+	RootWorkingDirectoryServer string
+	StartingPathServer         string
+}
+
 var (
 	rootWorkingDirectoryServer string
 	appName                    string
@@ -89,15 +96,17 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		os.Exit(1)
 	}
 
-	flagVals := ParseFlags(args)
+	flagVals, paths := ParseArgs(args)
 
 	// flag variables
 	filterList := filter.GetFilterList(flagVals.Omit_flag, flagVals.Verbose_flag) // get list of things to not download
 
 	workingDir, err := os.Getwd()
 	check(err, "Called by: Getwd")
-	rootWorkingDirectoryLocal, rootWorkingDirectoryServer, startingPathServer := GetDirectoryContext(workingDir, args, flagVals.File_flag)
-	rootWorkingDirectoryLocal = filepath.FromSlash(rootWorkingDirectoryLocal)
+	pathVals := GetDirectoryContext(workingDir, paths, flagVals.File_flag)
+	for _, v := range pathVals {
+		v.RootWorkingDirectoryLocal = filepath.FromSlash(v.RootWorkingDirectoryLocal)
+	}
 
 	// ensure cf_trace is disabled, otherwise parsing breaks
 	if os.Getenv("CF_TRACE") == "true" {
@@ -105,56 +114,57 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		return
 	}
 
-	// prevent overwriting files
-	if Exists(rootWorkingDirectoryLocal) && flagVals.OverWrite_flag == false {
-		fmt.Println("\nError: destination path", rootWorkingDirectoryLocal, "already exists.\n\nDelete it or rerun the command with the '--overwrite' flag.")
-		os.Exit(1)
-	}
+	for _, v := range pathVals {
+		// prevent overwriting files
+		if Exists(v.RootWorkingDirectoryLocal) && flagVals.OverWrite_flag == false {
+			fmt.Println("\nError: destination path", v.RootWorkingDirectoryLocal, "already exists.\n\nDelete it or rerun the command with the '--overwrite' flag.")
+			os.Exit(1)
+		}
 
-	// remove files to be overwritten
-	if flagVals.OverWrite_flag {
-		err := os.RemoveAll(rootWorkingDirectoryLocal)
-		check(err, "Cannot remove "+rootWorkingDirectoryLocal+" for overwrite.")
-	}
+		// remove files to be overwritten
+		if flagVals.OverWrite_flag {
+			err := os.RemoveAll(v.RootWorkingDirectoryLocal)
+			check(err, "Cannot remove "+v.RootWorkingDirectoryLocal+" for overwrite.")
+		}
 
-	cmdExec := cmd_exec.NewCmdExec()
-	parser = dir_parser.NewParser(cmdExec, appName, flagVals.Instance_flag, onWindows, flagVals.Verbose_flag)
-	dloader = downloader.NewDownloader(cmdExec, &wg, appName, flagVals.Instance_flag, rootWorkingDirectoryServer, flagVals.Verbose_flag, onWindows)
+		cmdExec := cmd_exec.NewCmdExec()
+		parser = dir_parser.NewParser(cmdExec, appName, flagVals.Instance_flag, onWindows, flagVals.Verbose_flag)
+		dloader = downloader.NewDownloader(cmdExec, &wg, appName, flagVals.Instance_flag, v.RootWorkingDirectoryServer, flagVals.Verbose_flag, onWindows)
 
-	// stop consoleWriter
-	quit := make(chan int)
+		// stop consoleWriter
+		quit := make(chan int)
 
-	// disable consoleWriter if verbose
-	if flagVals.Verbose_flag == false {
-		go consoleWriter(quit)
-	}
+		// disable consoleWriter if verbose
+		if flagVals.Verbose_flag == false {
+			go consoleWriter(quit)
+		}
 
-	if flagVals.File_flag {
-		err := os.MkdirAll(strings.TrimSuffix(rootWorkingDirectoryLocal, filepath.Base(rootWorkingDirectoryLocal)), 0755)
-		check(err, "Error D1: failed to create directory.")
+		if flagVals.File_flag {
+			err := os.MkdirAll(strings.TrimSuffix(v.RootWorkingDirectoryLocal, filepath.Base(v.RootWorkingDirectoryLocal)), 0755)
+			check(err, "Error D1: failed to create directory.")
 
-		wg.Add(1)
-		dloader.DownloadFile(startingPathServer, rootWorkingDirectoryLocal, &wg)
-	} else {
-		// parse the directory
-		files, dirs := parser.ExecParseDir(startingPathServer)
+			wg.Add(1)
+			dloader.DownloadFile(v.StartingPathServer, v.RootWorkingDirectoryLocal, &wg)
+		} else {
+			// parse the directory
+			files, dirs := parser.ExecParseDir(v.StartingPathServer)
 
-		// Start the download
-		wg.Add(1)
-		dloader.Download(files, dirs, startingPathServer, rootWorkingDirectoryLocal, filterList)
-	}
+			// Start the download
+			wg.Add(1)
+			dloader.Download(files, dirs, v.StartingPathServer, v.RootWorkingDirectoryLocal, filterList)
+		}
 
-	// Wait for download goRoutines
-	wg.Wait()
+		// Wait for download goRoutines
+		wg.Wait()
 
-	// stop console writer
-	if flagVals.Verbose_flag == false {
-		quit <- 0
+		// stop console writer
+		if flagVals.Verbose_flag == false {
+			quit <- 0
+		}
 	}
 
 	getFailedDownloads()
 	PrintCompletionInfo(start, onWindows)
-
 }
 
 /*
@@ -167,40 +177,50 @@ func getFailedDownloads() {
 	failedDownloads = append(parser.GetFailedDownloads(), dloader.GetFailedDownloads()...)
 }
 
-func GetDirectoryContext(workingDir string, copyOfArgs []string, isFile bool) (string, string, string) {
-	rootWorkingDirectory := workingDir + "/"
-	localPath := rootWorkingDirectory
+func GetDirectoryContext(workingDir string, paths []string, isFile bool) []pathVal {
+	var pathVals []pathVal
 
-	// append path if provided as arguement
+	rootWorkingDir := workingDir + "/"
+	localPath := rootWorkingDir
 	startingPath := "/"
-	if len(copyOfArgs) > 2 && !strings.HasPrefix(copyOfArgs[2], "-") {
-		startingPath = copyOfArgs[2]
-		if !strings.HasSuffix(startingPath, "/") {
-			startingPath += "/"
+
+	if len(paths) == 0 {
+		// create appName directory if downloading whole app
+		addPathVals := pathVal{
+			RootWorkingDirectoryLocal:  localPath + appName + "/",
+			RootWorkingDirectoryServer: rootWorkingDir + appName + "/",
+			StartingPathServer:         startingPath,
 		}
-		if strings.HasPrefix(startingPath, "/") {
-			startingPath = strings.TrimPrefix(startingPath, "/")
-		}
-		localPath += filepath.Base(startingPath) + "/"
-		rootWorkingDirectory += startingPath
-		startingPath = "/" + startingPath
+
+		pathVals = append(pathVals, addPathVals)
 	} else {
-		rootWorkingDirectory += appName + "/"
-		localPath = rootWorkingDirectory
+		// append each path provided as an argument
+		for _, v := range paths {
+			if !strings.HasSuffix(v, "/") && !isFile {
+				v += "/"
+			}
+			if strings.HasPrefix(v, "/") {
+				v = strings.TrimPrefix(v, "/")
+			}
+
+			addPathVals := pathVal{
+				RootWorkingDirectoryLocal:  localPath + filepath.Base(v),
+				RootWorkingDirectoryServer: rootWorkingDir + v,
+				StartingPathServer:         startingPath + v,
+			}
+
+			if !isFile {
+				addPathVals.RootWorkingDirectoryLocal += "/"
+			}
+
+			pathVals = append(pathVals, addPathVals)
+		}
 	}
 
-	// ensure files do not have trailing backslash
-	if isFile {
-		localPath = strings.TrimSuffix(localPath, "/")
-		startingPath = strings.TrimSuffix(startingPath, "/")
-		rootWorkingDirectory = strings.TrimSuffix(rootWorkingDirectory, "/")
-	}
-
-	return localPath, rootWorkingDirectory, startingPath
+	return pathVals
 }
 
-func ParseFlags(args []string) flagVal {
-
+func ParseArgs(args []string) (flagVal, []string) {
 	// Create flagSet f1
 	f1 := flag.NewFlagSet("f1", flag.ContinueOnError)
 
@@ -211,12 +231,17 @@ func ParseFlags(args []string) flagVal {
 	verbosep := f1.Bool("verbose", false, "--verbose")
 	filep := f1.Bool("file", false, "--file")
 
-	var err error
-	if len(args) > 2 && !strings.HasPrefix(args[2], "-") { // if there is a path as in 'cf download path' vs. 'cf download'
-		err = f1.Parse(args[3:])
-	} else {
-		err = f1.Parse(args[2:])
+	// Get paths
+	var paths []string
+	for i, v := range args {
+		if strings.HasPrefix(v, "-") {
+			break
+		} else if i > 1 {
+			paths = append(paths, v)
+		}
 	}
+
+	err := f1.Parse(args[(2 + len(paths)):])
 
 	// check for misplaced flags
 	appName = args[1]
@@ -241,7 +266,7 @@ func ParseFlags(args []string) flagVal {
 		File_flag:      *filep,
 	}
 
-	return flagVals
+	return flagVals, paths
 }
 
 /*
@@ -254,7 +279,7 @@ func consoleWriter(quit chan int) {
 		filesDownloaded := dloader.GetFilesDownloadedCount()
 		select {
 		case <-quit:
-			fmt.Printf("\rFiles downloaded: %d ", filesDownloaded)
+			fmt.Println("\rFiles downloaded:", filesDownloaded, "  ")
 			return
 		default:
 			switch count = (count + 1) % 4; count {
@@ -383,7 +408,7 @@ func (c *DownloadPlugin) GetMetadata() plugin.PluginMetadata {
 				// UsageDetails is optional
 				// It is used to show help of usage of each command
 				UsageDetails: plugin.Usage{
-					Usage: "cf download APP_NAME [PATH] [--overwrite] [--file] [--verbose] [--omit ommited_paths] [-i instance_num]",
+					Usage: "cf download APP_NAME [PATH...] [--overwrite] [--file] [--verbose] [--omit ommited_paths] [-i instance_num]",
 					Options: map[string]string{
 						"-overwrite":             "Overwrite existing files",
 						"-file":                  "Specify a file",
