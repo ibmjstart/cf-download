@@ -2,6 +2,7 @@ package main_test
 
 import (
 	. "github.com/ibmjstart/cf-download"
+	"github.com/ibmjstart/cf-download/cmd_exec/cmd_exec_fake"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -238,6 +239,27 @@ var _ = Describe("CfDownload", func() {
 			Expect(pathVals[1].StartingPathServer).To(Equal("/app/logs/"))
 		})
 
+	})
+
+	Describe("test expandGlobs parsing", func() {
+		It("should return x.txt, y.txt, a.go and ab.go", func() {
+			cmdExec := cmd_exec_fake.NewCmdExec()
+			cmdExec.SetOutput("Getting files for app Test in org test / space dev as user...\nOK\n\nxyz.txt                                   220B\na.go                                      675B\nab.go                                     333B\nyz.go                                     123B\n\n")
+			cmdExec.SetFakeDir(false)
+
+			paths := make([]string, 1)
+			paths[0] = "*.txt"
+			paths = ExpandGlobs(cmdExec, paths, "0")
+			Expect(paths[0]).To(Equal("./xyz.txt"))
+
+			paths[0] = "?.go"
+			paths = ExpandGlobs(cmdExec, paths, "0")
+			Expect(paths[0]).To(Equal("./a.go"))
+
+			paths[0] = "[a-z]b.go"
+			paths = ExpandGlobs(cmdExec, paths, "0")
+			Expect(paths[0]).To(Equal("./ab.go"))
+		})
 	})
 
 	Describe("test error catching in run() [MUST HAVE PLUGIN INSTALLED TO PASS]", func() {

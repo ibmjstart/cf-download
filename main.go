@@ -96,7 +96,10 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		os.Exit(1)
 	}
 
+	cmdExec := cmd_exec.NewCmdExec()
+
 	flagVals, paths := ParseArgs(args)
+	paths = ExpandGlobs(cmdExec, paths, flagVals.Instance_flag)
 
 	// flag variables
 	filterList := filter.GetFilterList(flagVals.Omit_flag, flagVals.Verbose_flag) // get list of things to not download
@@ -127,7 +130,6 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			check(err, "Cannot remove "+v.RootWorkingDirectoryLocal+" for overwrite.")
 		}
 
-		cmdExec := cmd_exec.NewCmdExec()
 		parser = dir_parser.NewParser(cmdExec, appName, flagVals.Instance_flag, onWindows, flagVals.Verbose_flag)
 		dloader = downloader.NewDownloader(cmdExec, &wg, appName, flagVals.Instance_flag, v.RootWorkingDirectoryServer, flagVals.Verbose_flag, onWindows)
 
@@ -361,6 +363,36 @@ func Exists(path string) bool {
 	}
 	check(err, "Error E0.")
 	return false
+}
+
+// expands given input globs into matching paths
+func ExpandGlobs(cmdExec cmd_exec.CmdExec, paths []string, instance string) []string {
+	var newPaths []string
+	// iterate over each input path
+	for _, v := range paths {
+		// check if path is a glob
+		if strings.ContainsAny(v, "*?[]") {
+			dir := filepath.Dir(v)
+			out, _ := cmdExec.GetFile(appName, dir, instance)
+			body := strings.Split(string(out), "\n")
+			body = body[3 : len(body)-2]
+
+			//iterate over glob's directory
+			for _, w := range body {
+				cur := strings.SplitN(w, " ", 2)[0]
+				match, err := filepath.Match(filepath.Base(v), strings.TrimSuffix(cur, "/"))
+				check(err, "")
+				// append path to return list if glob pattern matches
+				if match && !strings.HasPrefix(cur, ".") {
+					newPaths = append(newPaths, filepath.Dir(v)+"/"+cur)
+				}
+			}
+		} else {
+			//not a glob, append original path to return list
+			newPaths = append(newPaths, v)
+		}
+	}
+	return newPaths
 }
 
 func createMessage(message, color string, onWindows bool) string {
