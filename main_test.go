@@ -14,20 +14,13 @@ import (
 
 // unit tests of individual functions
 var _ = Describe("CfDownload", func() {
-	var args []string
-	var paths []string
-
 	Describe("Test ParseArgs functionality", func() {
 
 		Context("Check if overWrite flag works", func() {
 			It("Should set the overwrite_flag", func() {
-				args = make([]string, 4)
-				args[0] = "download"
-				args[1] = "app"
-				args[2] = "app/files/htdocs"
-				args[3] = "--overwrite"
+				args := [...]string{"download", "app", "app/files/htdocs", "--overwrite"}
 
-				flagVals, _ := ParseArgs(args)
+				flagVals, _ := ParseArgs(args[:])
 				Expect(flagVals.OverWrite_flag).To(BeTrue())
 				Expect(flagVals.File_flag).To(BeFalse())
 				Expect(flagVals.Instance_flag).To(Equal("0"))
@@ -38,12 +31,9 @@ var _ = Describe("CfDownload", func() {
 
 		Context("Check if file flag works", func() {
 			It("Should set the file_flag", func() {
-				args = make([]string, 3)
-				args[0] = "download"
-				args[1] = "app"
-				args[2] = "--file"
+				args := [...]string{"download", "app", "--file"}
 
-				flagVals, _ := ParseArgs(args)
+				flagVals, _ := ParseArgs(args[:])
 				Expect(flagVals.OverWrite_flag).To(BeFalse())
 				Expect(flagVals.File_flag).To(BeTrue())
 				Expect(flagVals.Instance_flag).To(Equal("0"))
@@ -54,12 +44,9 @@ var _ = Describe("CfDownload", func() {
 
 		Context("Check if verbose flag works", func() {
 			It("Should set the verbose_flag", func() {
-				args = make([]string, 3)
-				args[0] = "download"
-				args[1] = "app"
-				args[2] = "--verbose"
+				args := [...]string{"download", "app", "--verbose"}
 
-				flagVals, _ := ParseArgs(args)
+				flagVals, _ := ParseArgs(args[:])
 				Expect(flagVals.OverWrite_flag).To(BeFalse())
 				Expect(flagVals.File_flag).To(BeFalse())
 				Expect(flagVals.Instance_flag).To(Equal("0"))
@@ -70,13 +57,9 @@ var _ = Describe("CfDownload", func() {
 
 		Context("Check if instance (i) flag works", func() {
 			It("Should set the instance_flag", func() {
-				args = make([]string, 4)
-				args[0] = "download"
-				args[1] = "app"
-				args[2] = "--i"
-				args[3] = "3"
+				args := [...]string{"download", "app", "--i", "3"}
 
-				flagVals, _ := ParseArgs(args)
+				flagVals, _ := ParseArgs(args[:])
 				Expect(flagVals.OverWrite_flag).To(BeFalse())
 				Expect(flagVals.File_flag).To(BeFalse())
 				Expect(flagVals.Instance_flag).To(Equal("3"))
@@ -87,13 +70,9 @@ var _ = Describe("CfDownload", func() {
 
 		Context("Check if omit flag works", func() {
 			It("Should set the omit_flag", func() {
-				args = make([]string, 4)
-				args[0] = "download"
-				args[1] = "app"
-				args[2] = "--omit"
-				args[3] = "app/node_modules"
+				args := [...]string{"download", "app", "--omit", "app/node_modules"}
 
-				flagVals, _ := ParseArgs(args)
+				flagVals, _ := ParseArgs(args[:])
 				Expect(flagVals.OverWrite_flag).To(BeFalse())
 				Expect(flagVals.File_flag).To(BeFalse())
 				Expect(flagVals.Instance_flag).To(Equal("0"))
@@ -104,32 +83,23 @@ var _ = Describe("CfDownload", func() {
 
 		Context("Check if correct number of paths are returned", func() {
 			It("Should return 0 paths", func() {
-				args = make([]string, 2)
-				args[0] = "download"
-				args[1] = "app"
+				args := [...]string{"download", "app"}
 
-				_, paths := ParseArgs(args)
+				_, paths := ParseArgs(args[:])
 				Expect(len(paths)).To(Equal(0))
 			})
 
 			It("Should return 1 path", func() {
-				args = make([]string, 3)
-				args[0] = "download"
-				args[1] = "app"
-				args[2] = "path/to/file"
+				args := [...]string{"download", "app", "path/to/file"}
 
-				_, paths := ParseArgs(args)
+				_, paths := ParseArgs(args[:])
 				Expect(len(paths)).To(Equal(1))
 			})
 
 			It("Should return 2 paths", func() {
-				args = make([]string, 4)
-				args[0] = "download"
-				args[1] = "app"
-				args[2] = "path/to/file"
-				args[3] = "path/to/other/file"
+				args := [...]string{"download", "app", "path/to/file", "path/to/other/file"}
 
-				_, paths := ParseArgs(args)
+				_, paths := ParseArgs(args[:])
 				Expect(len(paths)).To(Equal(2))
 			})
 		})
@@ -138,11 +108,11 @@ var _ = Describe("CfDownload", func() {
 	Describe("test directoryContext parsing", func() {
 
 		It("Should return correct strings", func() {
-			paths = make([]string, 1)
-			paths[0] = "app/src/node"
+			paths := [...]string{"app/src/node"}
+
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			pathVals := GetDirectoryContext(currentDirectory, paths, false)
+			pathVals := GetDirectoryContext(currentDirectory, paths[:], false)
 
 			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
 			Expect(correctSuffix).To(BeTrue())
@@ -151,11 +121,11 @@ var _ = Describe("CfDownload", func() {
 		})
 
 		It("should still return /app/src/node/ for startingPath (INPUT has leading and trailing slash)", func() {
-			paths = make([]string, 1)
-			paths[0] = "/app/src/node/"
+			paths := [...]string{"/app/src/node/"}
+
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			pathVals := GetDirectoryContext(currentDirectory, paths, false)
+			pathVals := GetDirectoryContext(currentDirectory, paths[:], false)
 
 			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
 			Expect(correctSuffix).To(BeTrue())
@@ -164,11 +134,11 @@ var _ = Describe("CfDownload", func() {
 		})
 
 		It("should still return /app/src/node/ for startingPath (INPUT only has trailing slash)", func() {
-			paths = make([]string, 1)
-			paths[0] = "app/src/node/"
+			paths := [...]string{"app/src/node/"}
+
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			pathVals := GetDirectoryContext(currentDirectory, paths, false)
+			pathVals := GetDirectoryContext(currentDirectory, paths[:], false)
 
 			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
 			Expect(correctSuffix).To(BeTrue())
@@ -177,11 +147,11 @@ var _ = Describe("CfDownload", func() {
 		})
 
 		It("should still return /app/src/node/ for startingPath (INPUT only has leading slash)", func() {
-			paths = make([]string, 1)
-			paths[0] = "/app/src/node"
+			paths := [...]string{"/app/src/node"}
+
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			pathVals := GetDirectoryContext(currentDirectory, paths, false)
+			pathVals := GetDirectoryContext(currentDirectory, paths[:], false)
 
 			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
 			Expect(correctSuffix).To(BeTrue())
@@ -190,11 +160,11 @@ var _ = Describe("CfDownload", func() {
 		})
 
 		It("should return /app/src/file.html for startingPath (--file flag specified)", func() {
-			paths = make([]string, 1)
-			paths[0] = "/app/src/file.html"
+			paths := [...]string{"/app/src/file.html"}
+
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			pathVals := GetDirectoryContext(currentDirectory, paths, true)
+			pathVals := GetDirectoryContext(currentDirectory, paths[:], true)
 
 			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/file.html")
 			Expect(correctSuffix).To(BeTrue())
@@ -203,12 +173,11 @@ var _ = Describe("CfDownload", func() {
 		})
 
 		It("should return two staringPaths, /app/src/ and /app/logs/", func() {
-			paths = make([]string, 2)
-			paths[0] = "/app/src/"
-			paths[1] = "/app/logs/"
+			paths := [...]string{"/app/src/", "app/logs/"}
+
 			currentDirectory, _ := os.Getwd()
 			currentDirectory = filepath.ToSlash(currentDirectory)
-			pathVals := GetDirectoryContext(currentDirectory, paths, false)
+			pathVals := GetDirectoryContext(currentDirectory, paths[:], false)
 
 			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/src/")
 			Expect(correctSuffix).To(BeTrue())
