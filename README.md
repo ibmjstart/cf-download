@@ -30,7 +30,7 @@
 
 cf download APP_NAME [PATH...] [--overwrite] [--file] [--verbose] [--omit omitted_path] [-i instance]
 
-The downloaded app files will be put in a new directory "APP_NAME" that's created within your working directory.
+If no "PATH" is specified, the downloaded app files will be put in a new directory "APP_NAME" that's created within your working directory.
 If "PATH" is specified, the directory or file specified will be placed directly in your working directory.
 
 ### Path Argument

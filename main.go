@@ -47,18 +47,16 @@ type flagVal struct {
 
 // contains local and server paths
 type pathVal struct {
-	RootWorkingDirectoryLocal  string
-	RootWorkingDirectoryServer string
-	StartingPathServer         string
+	RootWorkingDirectoryLocal string
+	StartingPathServer        string
 }
 
 var (
-	rootWorkingDirectoryServer string
-	appName                    string
-	filesDownloaded            int
-	failedDownloads            []string
-	parser                     dir_parser.Parser
-	dloader                    downloader.Downloader
+	appName         string
+	filesDownloaded int
+	failedDownloads []string
+	parser          dir_parser.Parser
+	dloader         downloader.Downloader
 )
 
 // global wait group for all download threads
@@ -96,10 +94,13 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		os.Exit(1)
 	}
 
-	cmdExec := cmd_exec.NewCmdExec()
-
-	// parse flags and get list of download paths
+	// parse input flags
 	flagVals, paths := ParseArgs(args)
+
+	cmdExec := cmd_exec.NewCmdExec()
+	parser = dir_parser.NewParser(cmdExec, appName, flagVals.Instance_flag, onWindows, flagVals.Verbose_flag)
+
+	// get list of paths to download
 	paths = ExpandGlobs(cmdExec, paths, flagVals.Instance_flag)
 
 	// get list of things to not download
@@ -109,9 +110,6 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 	workingDir, err := os.Getwd()
 	check(err, "Called by: Getwd")
 	pathVals := GetDirectoryContext(workingDir, paths, flagVals.File_flag)
-	for _, v := range pathVals {
-		v.RootWorkingDirectoryLocal = filepath.FromSlash(v.RootWorkingDirectoryLocal)
-	}
 
 	// ensure cf_trace is disabled, otherwise parsing breaks
 	if os.Getenv("CF_TRACE") == "true" {
@@ -133,8 +131,7 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 			check(err, "Cannot remove "+v.RootWorkingDirectoryLocal+" for overwrite.")
 		}
 
-		parser = dir_parser.NewParser(cmdExec, appName, flagVals.Instance_flag, onWindows, flagVals.Verbose_flag)
-		dloader = downloader.NewDownloader(cmdExec, &wg, appName, flagVals.Instance_flag, v.RootWorkingDirectoryServer, flagVals.Verbose_flag, onWindows)
+		dloader = downloader.NewDownloader(cmdExec, &wg, appName, flagVals.Instance_flag, flagVals.Verbose_flag, onWindows)
 
 		// stop consoleWriter
 		quit := make(chan int)
@@ -195,16 +192,15 @@ func getFailedDownloads() {
 func GetDirectoryContext(workingDir string, paths []string, isFile bool) []pathVal {
 	var pathVals []pathVal
 
-	rootWorkingDir := workingDir + "/"
-	localPath := rootWorkingDir
+	//rootWorkingDir := workingDir + "/"
+	localPath := workingDir + "/"
 	startingPath := "/"
 
 	if len(paths) == 0 {
 		// create appName directory if downloading whole app
 		addPathVals := pathVal{
-			RootWorkingDirectoryLocal:  localPath + appName + "/",
-			RootWorkingDirectoryServer: rootWorkingDir + appName + "/",
-			StartingPathServer:         startingPath,
+			RootWorkingDirectoryLocal: filepath.FromSlash(localPath + appName + "/"),
+			StartingPathServer:        startingPath,
 		}
 
 		pathVals = append(pathVals, addPathVals)
@@ -221,9 +217,8 @@ func GetDirectoryContext(workingDir string, paths []string, isFile bool) []pathV
 			}
 
 			addPathVals := pathVal{
-				RootWorkingDirectoryLocal:  localPath + filepath.Base(v),
-				RootWorkingDirectoryServer: rootWorkingDir + v,
-				StartingPathServer:         startingPath + v,
+				RootWorkingDirectoryLocal: filepath.FromSlash(localPath + filepath.Base(v)),
+				StartingPathServer:        startingPath + v,
 			}
 
 			// ensure trailing backslash is added to local root directory
@@ -292,7 +287,7 @@ func ParseArgs(args []string) (flagVal, []string) {
 }
 
 /*
-*	This funciton prints the current number of files downloaded. It is polled every 350 milleseconds
+*	This function prints the current number of files downloaded. It is polled every 350 milleseconds
 * 	and disabled if the verbose flag is set to true.
  */
 func consoleWriter(quit chan int) {

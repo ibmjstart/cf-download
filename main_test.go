@@ -144,10 +144,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			pathVals := GetDirectoryContext(currentDirectory, paths, false)
 
-			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryServer, "/cf-download/app/src/node/")
-			Expect(correctSuffix).To(BeTrue())
-
-			correctSuffix = strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
+			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
 			Expect(correctSuffix).To(BeTrue())
 
 			Expect(pathVals[0].StartingPathServer).To(Equal("/app/src/node/"))
@@ -160,10 +157,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			pathVals := GetDirectoryContext(currentDirectory, paths, false)
 
-			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryServer, "/cf-download/app/src/node/")
-			Expect(correctSuffix).To(BeTrue())
-
-			correctSuffix = strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
+			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
 			Expect(correctSuffix).To(BeTrue())
 
 			Expect(pathVals[0].StartingPathServer).To(Equal("/app/src/node/"))
@@ -176,10 +170,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			pathVals := GetDirectoryContext(currentDirectory, paths, false)
 
-			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryServer, "/cf-download/app/src/node/")
-			Expect(correctSuffix).To(BeTrue())
-
-			correctSuffix = strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
+			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
 			Expect(correctSuffix).To(BeTrue())
 
 			Expect(pathVals[0].StartingPathServer).To(Equal("/app/src/node/"))
@@ -192,10 +183,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			pathVals := GetDirectoryContext(currentDirectory, paths, false)
 
-			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryServer, "/cf-download/app/src/node/")
-			Expect(correctSuffix).To(BeTrue())
-
-			correctSuffix = strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
+			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
 			Expect(correctSuffix).To(BeTrue())
 
 			Expect(pathVals[0].StartingPathServer).To(Equal("/app/src/node/"))
@@ -208,10 +196,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			pathVals := GetDirectoryContext(currentDirectory, paths, true)
 
-			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryServer, "/cf-download/app/src/file.html")
-			Expect(correctSuffix).To(BeTrue())
-
-			correctSuffix = strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/file.html")
+			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/file.html")
 			Expect(correctSuffix).To(BeTrue())
 
 			Expect(pathVals[0].StartingPathServer).To(Equal("/app/src/file.html"))
@@ -225,12 +210,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			pathVals := GetDirectoryContext(currentDirectory, paths, false)
 
-			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryServer, "/cf-download/app/src/")
-			Expect(correctSuffix).To(BeTrue())
-			correctSuffix = strings.HasSuffix(pathVals[1].RootWorkingDirectoryServer, "/cf-download/app/logs/")
-			Expect(correctSuffix).To(BeTrue())
-
-			correctSuffix = strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/src/")
+			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/src/")
 			Expect(correctSuffix).To(BeTrue())
 			correctSuffix = strings.HasSuffix(pathVals[1].RootWorkingDirectoryLocal, "/cf-download/logs/")
 			Expect(correctSuffix).To(BeTrue())
