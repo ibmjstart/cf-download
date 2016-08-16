@@ -199,10 +199,11 @@ func GetDirectoryContext(workingDir string, paths []string, isFile bool) []pathV
 	if len(paths) == 0 {
 		// create appName directory if downloading whole app
 		addPathVals := pathVal{
-			RootWorkingDirectoryLocal: filepath.FromSlash(localPath + appName + "/"),
+			RootWorkingDirectoryLocal: localPath + appName + "/",
 			StartingPathServer:        startingPath,
 		}
 
+		addPathVals.RootWorkingDirectoryLocal = filepath.FromSlash(addPathVals.RootWorkingDirectoryLocal)
 		pathVals = append(pathVals, addPathVals)
 	} else {
 		// append each path provided as an argument
@@ -217,7 +218,7 @@ func GetDirectoryContext(workingDir string, paths []string, isFile bool) []pathV
 			}
 
 			addPathVals := pathVal{
-				RootWorkingDirectoryLocal: filepath.FromSlash(localPath + filepath.Base(v)),
+				RootWorkingDirectoryLocal: localPath + filepath.Base(v),
 				StartingPathServer:        startingPath + v,
 			}
 
@@ -226,6 +227,7 @@ func GetDirectoryContext(workingDir string, paths []string, isFile bool) []pathV
 				addPathVals.RootWorkingDirectoryLocal += "/"
 			}
 
+			addPathVals.RootWorkingDirectoryLocal = filepath.FromSlash(addPathVals.RootWorkingDirectoryLocal)
 			pathVals = append(pathVals, addPathVals)
 		}
 	}

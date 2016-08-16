@@ -114,7 +114,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			pathVals := GetDirectoryContext(currentDirectory, paths[:], false)
 
-			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
+			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, filepath.FromSlash("/cf-download/node/"))
 			Expect(correctSuffix).To(BeTrue())
 
 			Expect(pathVals[0].StartingPathServer).To(Equal("/app/src/node/"))
@@ -127,7 +127,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			pathVals := GetDirectoryContext(currentDirectory, paths[:], false)
 
-			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
+			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, filepath.FromSlash("/cf-download/node/"))
 			Expect(correctSuffix).To(BeTrue())
 
 			Expect(pathVals[0].StartingPathServer).To(Equal("/app/src/node/"))
@@ -140,7 +140,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			pathVals := GetDirectoryContext(currentDirectory, paths[:], false)
 
-			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
+			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, filepath.FromSlash("/cf-download/node/"))
 			Expect(correctSuffix).To(BeTrue())
 
 			Expect(pathVals[0].StartingPathServer).To(Equal("/app/src/node/"))
@@ -153,7 +153,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			pathVals := GetDirectoryContext(currentDirectory, paths[:], false)
 
-			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/node/")
+			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, filepath.FromSlash("/cf-download/node/"))
 			Expect(correctSuffix).To(BeTrue())
 
 			Expect(pathVals[0].StartingPathServer).To(Equal("/app/src/node/"))
@@ -166,7 +166,7 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			pathVals := GetDirectoryContext(currentDirectory, paths[:], true)
 
-			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/file.html")
+			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, filepath.FromSlash("/cf-download/file.html"))
 			Expect(correctSuffix).To(BeTrue())
 
 			Expect(pathVals[0].StartingPathServer).To(Equal("/app/src/file.html"))
@@ -179,9 +179,9 @@ var _ = Describe("CfDownload", func() {
 			currentDirectory = filepath.ToSlash(currentDirectory)
 			pathVals := GetDirectoryContext(currentDirectory, paths[:], false)
 
-			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, "/cf-download/src/")
+			correctSuffix := strings.HasSuffix(pathVals[0].RootWorkingDirectoryLocal, filepath.FromSlash("/cf-download/src/"))
 			Expect(correctSuffix).To(BeTrue())
-			correctSuffix = strings.HasSuffix(pathVals[1].RootWorkingDirectoryLocal, "/cf-download/logs/")
+			correctSuffix = strings.HasSuffix(pathVals[1].RootWorkingDirectoryLocal, filepath.FromSlash("/cf-download/logs/"))
 			Expect(correctSuffix).To(BeTrue())
 
 			Expect(pathVals[0].StartingPathServer).To(Equal("/app/src/"))
