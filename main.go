@@ -148,7 +148,7 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 
 			// start download of single file
 			wg.Add(1)
-			dloader.DownloadFile(v.StartingPathServer, v.RootWorkingDirectoryLocal, &wg)
+			dloader.DownloadFile(v.StartingPathServer, v.RootWorkingDirectoryLocal)
 		} else {
 			// parse the input directory
 			files, dirs := parser.ExecParseDir(v.StartingPathServer)
@@ -400,7 +400,9 @@ func ExpandGlobs(cmdExec cmd_exec.CmdExec, paths []string, instance string) []st
 		if strings.ContainsAny(v, "*?[]") {
 			dir := filepath.Dir(v)
 			out, _ := cmdExec.GetFile(appName, dir, instance)
+			// split the body line by line
 			body := strings.Split(string(out), "\n")
+			// the first 3 lines contain execution info from cf files and the last 2 are blank
 			body = body[3 : len(body)-2]
 
 			//iterate over glob's directory

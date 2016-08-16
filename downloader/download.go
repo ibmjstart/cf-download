@@ -18,7 +18,7 @@ import (
 
 type Downloader interface {
 	Download(files, dirs []string, readPath, writePath string, filterList []string) error
-	DownloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup) error
+	DownloadFile(readPath, writePath string) error
 	WriteFile(readPath, writePath string, output []byte, err error) error
 	CheckDownload(readPath string, file []string, err error) error
 	GetFilesDownloadedCount() int
@@ -80,7 +80,7 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 		}
 
 		d.wg.Add(1)
-		go d.DownloadFile(fileRPath, fileWPath, d.wg)
+		go d.DownloadFile(fileRPath, fileWPath)
 	}
 
 	// call download on every sub directory
@@ -88,7 +88,7 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 		dirWPath := writePath + filepath.FromSlash(val)
 		dirRPath := readPath + val
 
-		if filter.CheckToFilter(dirRPath, filterList) {
+		if filter.CheckToFilter(strings.TrimSuffix(dirRPath, "/"), filterList) {
 			continue
 		}
 
@@ -108,8 +108,8 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 *	downloaded using the cmd_exec package which uses the os/exec library to call cf files with the given readPath. The output is
 *	written to a file at writePath.
  */
-func (d *downloader) DownloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup) error {
-	defer fileDownloadGroup.Done()
+func (d *downloader) DownloadFile(readPath, writePath string) error {
+	defer d.wg.Done()
 
 	output, err := d.cmdExec.GetFile(d.appName, readPath, d.instance)
 
