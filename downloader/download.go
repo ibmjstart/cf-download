@@ -18,7 +18,7 @@ import (
 
 type Downloader interface {
 	Download(files, dirs []string, readPath, writePath string, filterList []string) error
-	DownloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup) error
+	DownloadFile(readPath, writePath string) error
 	WriteFile(readPath, writePath string, output []byte, err error) error
 	CheckDownload(readPath string, file []string, err error) error
 	GetFilesDownloadedCount() int
@@ -26,29 +26,27 @@ type Downloader interface {
 }
 
 type downloader struct {
-	cmdExec                    cmd_exec.CmdExec
-	rootWorkingDirectoryServer string
-	appName                    string
-	instance                   string
-	verbose                    bool
-	onWindows                  bool
-	failedDownloads            []string
-	filesDownloaded            int
-	parser                     dir_parser.Parser
-	wg                         *sync.WaitGroup
+	cmdExec         cmd_exec.CmdExec
+	appName         string
+	instance        string
+	verbose         bool
+	onWindows       bool
+	failedDownloads []string
+	filesDownloaded int
+	parser          dir_parser.Parser
+	wg              *sync.WaitGroup
 }
 
-func NewDownloader(cmdExec cmd_exec.CmdExec, WG *sync.WaitGroup, appName, instance, rootWorkingDirectoryServer string, verbose, onWindows bool) *downloader {
+func NewDownloader(cmdExec cmd_exec.CmdExec, WG *sync.WaitGroup, appName, instance string, verbose, onWindows bool) *downloader {
 
 	return &downloader{
-		cmdExec:                    cmdExec,
-		rootWorkingDirectoryServer: rootWorkingDirectoryServer,
-		appName:                    appName,
-		instance:                   instance,
-		verbose:                    verbose,
-		onWindows:                  onWindows,
-		parser:                     dir_parser.NewParser(cmdExec, appName, instance, onWindows, verbose),
-		wg:                         WG,
+		cmdExec:   cmdExec,
+		appName:   appName,
+		instance:  instance,
+		verbose:   verbose,
+		onWindows: onWindows,
+		parser:    dir_parser.NewParser(cmdExec, appName, instance, onWindows, verbose),
+		wg:        WG,
 	}
 }
 
@@ -77,23 +75,20 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 		fileWPath := writePath + val
 		fileRPath := readPath + val
 
-		filePath := strings.TrimPrefix(strings.TrimSuffix(fileRPath, "/"), d.rootWorkingDirectoryServer)
-
-		if filter.CheckToFilter(filePath, filterList) {
+		if filter.CheckToFilter(fileRPath, filterList) {
 			continue
 		}
 
 		d.wg.Add(1)
-		go d.DownloadFile(fileRPath, fileWPath, d.wg)
+		go d.DownloadFile(fileRPath, fileWPath)
 	}
 
 	// call download on every sub directory
 	for _, val := range dirs {
 		dirWPath := writePath + filepath.FromSlash(val)
 		dirRPath := readPath + val
-		dirPath := strings.TrimPrefix(strings.TrimSuffix(dirRPath, "/"), d.rootWorkingDirectoryServer)
 
-		if filter.CheckToFilter(dirPath, filterList) {
+		if filter.CheckToFilter(strings.TrimSuffix(dirRPath, "/"), filterList) {
 			continue
 		}
 
@@ -113,8 +108,8 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 *	downloaded using the cmd_exec package which uses the os/exec library to call cf files with the given readPath. The output is
 *	written to a file at writePath.
  */
-func (d *downloader) DownloadFile(readPath, writePath string, fileDownloadGroup *sync.WaitGroup) error {
-	defer fileDownloadGroup.Done()
+func (d *downloader) DownloadFile(readPath, writePath string) error {
+	defer d.wg.Done()
 
 	output, err := d.cmdExec.GetFile(d.appName, readPath, d.instance)
 

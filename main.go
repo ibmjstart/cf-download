@@ -42,15 +42,21 @@ type flagVal struct {
 	OverWrite_flag bool
 	Instance_flag  string
 	Verbose_flag   bool
+	File_flag      bool
+}
+
+// contains local and server paths
+type pathVal struct {
+	RootWorkingDirectoryLocal string
+	StartingPathServer        string
 }
 
 var (
-	rootWorkingDirectoryServer string
-	appName                    string
-	filesDownloaded            int
-	failedDownloads            []string
-	parser                     dir_parser.Parser
-	dloader                    downloader.Downloader
+	appName         string
+	filesDownloaded int
+	failedDownloads []string
+	parser          dir_parser.Parser
+	dloader         downloader.Downloader
 )
 
 // global wait group for all download threads
@@ -88,15 +94,22 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		os.Exit(1)
 	}
 
-	flagVals := ParseFlags(args)
+	// parse input flags
+	flagVals, paths := ParseArgs(args)
 
-	// flag variables
-	filterList := filter.GetFilterList(flagVals.Omit_flag, flagVals.Verbose_flag) // get list of things to not download
+	cmdExec := cmd_exec.NewCmdExec()
+	parser = dir_parser.NewParser(cmdExec, appName, flagVals.Instance_flag, onWindows, flagVals.Verbose_flag)
 
+	// get list of paths to download
+	paths = ExpandGlobs(cmdExec, paths, flagVals.Instance_flag)
+
+	// get list of things to not download
+	filterList := filter.GetFilterList(flagVals.Omit_flag, flagVals.Verbose_flag)
+
+	// get server path to download from and local path to download to
 	workingDir, err := os.Getwd()
 	check(err, "Called by: Getwd")
-	rootWorkingDirectoryServer, startingPathServer := GetDirectoryContext(workingDir, args)
-	rootWorkingDirectoryLocal := filepath.FromSlash(rootWorkingDirectoryServer)
+	pathVals := GetDirectoryContext(workingDir, paths, flagVals.File_flag)
 
 	// ensure cf_trace is disabled, otherwise parsing breaks
 	if os.Getenv("CF_TRACE") == "true" {
@@ -104,91 +117,150 @@ func (c *DownloadPlugin) Run(cliConnection plugin.CliConnection, args []string) 
 		return
 	}
 
-	// prevent overwriting files
-	if Exists(rootWorkingDirectoryLocal) && flagVals.OverWrite_flag == false {
-		fmt.Println("\nError: destination path", rootWorkingDirectoryLocal, "already Exists and is not an empty directory.\n\nDelete it or use 'cf download APP_NAME --overwrite'")
-		os.Exit(1)
+	// download files at each input path
+	for _, v := range pathVals {
+		// prevent overwriting files
+		if Exists(v.RootWorkingDirectoryLocal) && flagVals.OverWrite_flag == false {
+			fmt.Println("\nError: destination path", v.RootWorkingDirectoryLocal, "already exists.\n\nDelete it or rerun the command with the '--overwrite' flag.")
+			os.Exit(1)
+		}
+
+		// remove files to be overwritten
+		if flagVals.OverWrite_flag {
+			err := os.RemoveAll(v.RootWorkingDirectoryLocal)
+			check(err, "Cannot remove "+v.RootWorkingDirectoryLocal+" for overwrite.")
+		}
+
+		dloader = downloader.NewDownloader(cmdExec, &wg, appName, flagVals.Instance_flag, flagVals.Verbose_flag, onWindows)
+
+		// stop consoleWriter
+		quit := make(chan int)
+
+		// disable consoleWriter if verbose
+		if flagVals.Verbose_flag == false {
+			go consoleWriter(quit)
+		}
+
+		if flagVals.File_flag {
+			// create directory for single file
+			err := os.MkdirAll(strings.TrimSuffix(v.RootWorkingDirectoryLocal, filepath.Base(v.RootWorkingDirectoryLocal)), 0755)
+			check(err, "Error D1: failed to create directory.")
+
+			// start download of single file
+			wg.Add(1)
+			dloader.DownloadFile(v.StartingPathServer, v.RootWorkingDirectoryLocal)
+		} else {
+			// parse the input directory
+			files, dirs := parser.ExecParseDir(v.StartingPathServer)
+
+			// start download of directory
+			wg.Add(1)
+			dloader.Download(files, dirs, v.StartingPathServer, v.RootWorkingDirectoryLocal, filterList)
+		}
+
+		// wait for download goRoutines
+		wg.Wait()
+
+		// stop console writer
+		if flagVals.Verbose_flag == false {
+			quit <- 0
+		}
 	}
 
-	cmdExec := cmd_exec.NewCmdExec()
-	parser = dir_parser.NewParser(cmdExec, appName, flagVals.Instance_flag, onWindows, flagVals.Verbose_flag)
-	dloader = downloader.NewDownloader(cmdExec, &wg, appName, flagVals.Instance_flag, rootWorkingDirectoryServer, flagVals.Verbose_flag, onWindows)
-
-	// parse the directory
-	files, dirs := parser.ExecParseDir(startingPathServer)
-
-	// stop consoleWriter
-	quit := make(chan int)
-
-	// disable consoleWriter if verbose
-	if flagVals.Verbose_flag == false {
-		go consoleWriter(quit)
-	}
-
-	// Start the download
-	wg.Add(1)
-	dloader.Download(files, dirs, startingPathServer, rootWorkingDirectoryLocal, filterList)
-
-	// Wait for download goRoutines
-	wg.Wait()
-
-	// stop console writer
-	if flagVals.Verbose_flag == false {
-		quit <- 0
-	}
-
+	// return completion status to user
 	getFailedDownloads()
 	PrintCompletionInfo(start, onWindows)
-
 }
 
 /*
-*	-----------------------------------------------------------------------------------------------
-* 	------------------------------------- Helper Functions ----------------------------------------
-* 	-----------------------------------------------------------------------------------------------
+*	---------------------------------------------------------------------------------------
+* 	--------------------------------- Helper Functions ------------------------------------
+* 	---------------------------------------------------------------------------------------
  */
 
+/*
+*	This function returns a list of files that failed to download.
+ */
 func getFailedDownloads() {
 	failedDownloads = append(parser.GetFailedDownloads(), dloader.GetFailedDownloads()...)
 }
 
-func GetDirectoryContext(workingDir string, copyOfArgs []string) (string, string) {
-	rootWorkingDirectory := workingDir + "/" + appName + "-download/"
+/*
+*	This function returns a list of pathVal structs that contain the locations
+*	to download each input path to and from.
+ */
+func GetDirectoryContext(workingDir string, paths []string, isFile bool) []pathVal {
+	var pathVals []pathVal
 
-	// append path if provided as arguement
+	//rootWorkingDir := workingDir + "/"
+	localPath := workingDir + "/"
 	startingPath := "/"
-	if len(copyOfArgs) > 2 && !strings.HasPrefix(copyOfArgs[2], "-") {
-		startingPath = copyOfArgs[2]
-		if !strings.HasSuffix(startingPath, "/") {
-			startingPath += "/"
+
+	if len(paths) == 0 {
+		// create appName directory if downloading whole app
+		addPathVals := pathVal{
+			RootWorkingDirectoryLocal: localPath + appName + "/",
+			StartingPathServer:        startingPath,
 		}
-		if strings.HasPrefix(startingPath, "/") {
-			startingPath = strings.TrimPrefix(startingPath, "/")
+
+		addPathVals.RootWorkingDirectoryLocal = filepath.FromSlash(addPathVals.RootWorkingDirectoryLocal)
+		pathVals = append(pathVals, addPathVals)
+	} else {
+		// append each path provided as an argument
+		for _, v := range paths {
+			// add trailing backslash if path is not to a file
+			if !strings.HasSuffix(v, "/") && !isFile {
+				v += "/"
+			}
+			// remove leading backslash
+			if strings.HasPrefix(v, "/") {
+				v = strings.TrimPrefix(v, "/")
+			}
+
+			addPathVals := pathVal{
+				RootWorkingDirectoryLocal: localPath + filepath.Base(v),
+				StartingPathServer:        startingPath + v,
+			}
+
+			// ensure trailing backslash is added to local root directory
+			if !isFile {
+				addPathVals.RootWorkingDirectoryLocal += "/"
+			}
+
+			addPathVals.RootWorkingDirectoryLocal = filepath.FromSlash(addPathVals.RootWorkingDirectoryLocal)
+			pathVals = append(pathVals, addPathVals)
 		}
-		rootWorkingDirectory += startingPath
-		startingPath = "/" + startingPath
 	}
 
-	return rootWorkingDirectory, startingPath
+	return pathVals
 }
 
-func ParseFlags(args []string) flagVal {
-
-	// Create flagSet f1
+/*
+*	This function sets the flag values and determines download paths based on
+*	input arguments.
+ */
+func ParseArgs(args []string) (flagVal, []string) {
+	// create flagSet f1
 	f1 := flag.NewFlagSet("f1", flag.ContinueOnError)
 
-	// Create flags
+	// create flags
 	omitp := f1.String("omit", "", "--omit path/to/some/file")
 	overWritep := f1.Bool("overwrite", false, "--overwrite")
 	instancep := f1.Int("i", 0, "-i [instanceNum]")
 	verbosep := f1.Bool("verbose", false, "--verbose")
+	filep := f1.Bool("file", false, "--file")
 
-	var err error
-	if len(args) > 2 && !strings.HasPrefix(args[2], "-") { // if there is a path as in 'cf download path' vs. 'cf download'
-		err = f1.Parse(args[3:])
-	} else {
-		err = f1.Parse(args[2:])
+	// get paths
+	var paths []string
+	for i, v := range args {
+		if strings.HasPrefix(v, "-") {
+			break
+		} else if i > 1 {
+			paths = append(paths, v)
+		}
 	}
+
+	err := f1.Parse(args[(2 + len(paths)):])
 
 	// check for misplaced flags
 	appName = args[1]
@@ -198,7 +270,7 @@ func ParseFlags(args []string) flagVal {
 		os.Exit(1)
 	}
 
-	// Check for parsing errors, display usage
+	// check for parsing errors, display usage
 	if err != nil {
 		fmt.Println("\nError: ", err, "\n")
 		printHelp()
@@ -210,14 +282,15 @@ func ParseFlags(args []string) flagVal {
 		OverWrite_flag: bool(*overWritep),
 		Instance_flag:  strconv.Itoa(*instancep),
 		Verbose_flag:   *verbosep,
+		File_flag:      *filep,
 	}
 
-	return flagVals
+	return flagVals, paths
 }
 
 /*
-*	consoleWriter prints the current number of files downloaded. It is polled every 350 milleseconds
-* 	disabled if using verbose flag.
+*	This function prints the current number of files downloaded. It is polled every 350 milleseconds
+* 	and disabled if the verbose flag is set to true.
  */
 func consoleWriter(quit chan int) {
 	count := 0
@@ -225,7 +298,7 @@ func consoleWriter(quit chan int) {
 		filesDownloaded := dloader.GetFilesDownloadedCount()
 		select {
 		case <-quit:
-			fmt.Printf("\rFiles downloaded: %d ", filesDownloaded)
+			fmt.Println("\rFiles downloaded:", filesDownloaded, "  ")
 			return
 		default:
 			switch count = (count + 1) % 4; count {
@@ -243,18 +316,18 @@ func consoleWriter(quit chan int) {
 	}
 }
 
-// prints all the info you see at program finish
+/*
+*	This function prints all the info you see at program finish.
+ */
 func PrintCompletionInfo(start time.Time, onWindows bool) {
 	// let user know if any files were inaccessible
+	fmt.Println("")
 	if len(failedDownloads) == 1 {
-		fmt.Println("")
-		fmt.Println(len(failedDownloads), "file or directory was not downloaded (permissions issue or corrupt):")
-		PrintSlice(failedDownloads)
+		fmt.Println("1 file or directory was not downloaded (permissions issue or corrupt):")
 	} else if len(failedDownloads) > 1 {
-		fmt.Println("")
 		fmt.Println(len(failedDownloads), "files or directories were not downloaded (permissions issue or corrupt):")
-		PrintSlice(failedDownloads)
 	}
+	PrintSlice(failedDownloads)
 
 	if len(failedDownloads) > 100 {
 		fmt.Println("\nYou had over 100 failed downloads, we highly recommend you omit the failed file's open parent directories using the omit flag.\n")
@@ -273,7 +346,9 @@ func PrintCompletionInfo(start time.Time, onWindows bool) {
 	fmt.Println(msg)
 }
 
-// error check function
+/*
+*	This function checks for errors and prints error messages.
+ */
 func check(e error, errMsg string) {
 	if e != nil {
 		fmt.Println("\nError: ", e)
@@ -284,7 +359,9 @@ func check(e error, errMsg string) {
 	}
 }
 
-// prints slices in readable format
+/*
+*	This function prints slices in a readable format.
+ */
 func PrintSlice(slice []string) error {
 	for index, val := range slice {
 		fmt.Println(index+1, ": ", val)
@@ -292,11 +369,16 @@ func PrintSlice(slice []string) error {
 	return nil
 }
 
+/*
+*	This function returns true if the OS is Windows.
+ */
 func IsWindows() bool {
 	return runtime.GOOS == "windows"
 }
 
-// Exists returns whether the given file or directory Exists or not
+/*
+*	This function returns whether the given file or directory exists locally or not.
+ */
 func Exists(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {
@@ -309,6 +391,43 @@ func Exists(path string) bool {
 	return false
 }
 
+/*
+*	This function expands given input globs into matching paths on the server.
+ */
+func ExpandGlobs(cmdExec cmd_exec.CmdExec, paths []string, instance string) []string {
+	var newPaths []string
+	// iterate over each input path
+	for _, v := range paths {
+		// check if path is a glob
+		if strings.ContainsAny(v, "*?[]") {
+			dir := filepath.Dir(v)
+			out, _ := cmdExec.GetFile(appName, dir, instance)
+			// split the body line by line
+			body := strings.Split(string(out), "\n")
+			// the first 3 lines contain execution info from cf files and the last 2 are blank
+			body = body[3 : len(body)-2]
+
+			//iterate over glob's directory
+			for _, w := range body {
+				cur := strings.SplitN(w, " ", 2)[0]
+				match, err := filepath.Match(filepath.Base(v), strings.TrimSuffix(cur, "/"))
+				check(err, "")
+				// append path to return list if glob pattern matches
+				if match && !strings.HasPrefix(cur, ".") {
+					newPaths = append(newPaths, filepath.Dir(v)+"/"+cur)
+				}
+			}
+		} else {
+			//not a glob, append original path to return list
+			newPaths = append(newPaths, v)
+		}
+	}
+	return newPaths
+}
+
+/*
+*	This function formats color coded error messages.
+ */
 func createMessage(message, color string, onWindows bool) string {
 	errmsg := ansi.Color(message, color)
 	if onWindows == true {
@@ -318,6 +437,9 @@ func createMessage(message, color string, onWindows bool) string {
 	return errmsg
 }
 
+/*
+*	This function prints the help information for the cf download command.
+ */
 func printHelp() {
 	cmd := exec.Command("cf", "help", "download")
 	output, _ := cmd.CombinedOutput()
@@ -325,8 +447,8 @@ func printHelp() {
 }
 
 /*
-*	This function must be implemented as part of the	plugin interface
-*	defined by the core CLI.
+*	This function must be implemented as part of the plugin interface defined by
+*	the core CLI.
 *
 *	GetMetadata() returns a PluginMetadata struct. The first field, Name,
 *	determines the name of the plugin which should generally be without spaces.
@@ -351,12 +473,12 @@ func (c *DownloadPlugin) GetMetadata() plugin.PluginMetadata {
 				Name:     "download",
 				HelpText: "Download contents of a running app's file directory",
 
-				// UsageDetails is optional
-				// It is used to show help of usage of each command
+				// UsageDetails is optional, it is used to show help of usage of each command
 				UsageDetails: plugin.Usage{
-					Usage: "cf download APP_NAME [PATH] [--overwrite] [--verbose] [--omit ommited_paths] [-i instance_num]",
+					Usage: "cf download APP_NAME [PATH...] [--overwrite] [--file] [--verbose] [--omit ommited_paths] [-i instance_num]",
 					Options: map[string]string{
 						"-overwrite":             "Overwrite existing files",
+						"-file":                  "Specify a file",
 						"-verbose":               "Verbose output",
 						"-omit \"path/to/file\"": "Omit directories or files (delimited by semicolons)",
 						"i": "Instance",
@@ -385,8 +507,8 @@ func main() {
 	// The plugin interface hides panics from stdout, so in order to get panic info,
 	// you can run this plugin outside of the plugin architecture by setting debuglocally = true.
 
-	// example usage for local run: go run main.go download APP_NAME --overwrite 2> err.txt
-	// note the lack of 'cf'
+	// Example usage for local run: go run main.go download APP_NAME --overwrite 2> err.txt
+	// Note the lack of 'cf'
 
 	debugLocally := false
 	if debugLocally {

@@ -23,7 +23,7 @@ var _ = Describe("Downloader tests", func() {
 	os.MkdirAll(currentDirectory+"/testFiles/", 0755)
 
 	cmdExec = cmd_exec_fake.NewCmdExec()
-	d = NewDownloader(cmdExec, &wg, "appName", "0", "rootWorkingDirectory", false, false)
+	d = NewDownloader(cmdExec, &wg, "appName", "0", false, false)
 
 	// downloadfile also tests the following functions
 	// WriteFile(), CheckDownload()
@@ -33,7 +33,7 @@ var _ = Describe("Downloader tests", func() {
 				writePath := currentDirectory + "/testFiles/test1.txt"
 				cmdExec.SetOutput("Getting files for app payToWin in org jstart / space koldus as email@us.ibm.com...\nOK\nHello World")
 				wg.Add(1)
-				go d.DownloadFile("", writePath, &wg)
+				go d.DownloadFile("", writePath)
 				wg.Wait()
 
 				fileContents, err := ioutil.ReadFile(writePath)
@@ -42,7 +42,7 @@ var _ = Describe("Downloader tests", func() {
 				writePath = currentDirectory + "/testFiles/test2.txt"
 				cmdExec.SetOutput("Getting files for app payToWin in org jstart / space koldus as email@us.ibm.com...\nOK\nLorem ipsum is a pseudo-Latin text used in web design, typography, layout, and printing in place of English to emphasise design elements over content. It's also called placeholder (or filler) text. It's a convenient tool for mock-ups. It helps to outline the visual elements of a document or presentation, eg typography, font, or layout. Lorem ipsum is mostly a part of a Latin text by the classical author and philosopher Cicero. Its words and letters have been changed by addition or removal, so to deliberately render its content nonsensical; it's not genuine, correct, or comprehensible Latin anymore. While lorem ipsum's still resembles classical Latin, it actually has no meaning whatsoever. As Cicero's text doesn't contain the letters K, W, or Z, alien to latin, these, and others are often inserted randomly to mimic the typographic appearence of European languages, as are digraphs not to be found in the original.")
 				wg.Add(1)
-				go d.DownloadFile("", writePath, &wg)
+				go d.DownloadFile("", writePath)
 				wg.Wait()
 
 				fileInfo, err := os.Stat(writePath)
@@ -176,7 +176,7 @@ var _ = Describe("Downloader tests", func() {
 	Describe("Test Download() Function", func() {
 		Context("download the entire directory (no filter)", func() {
 			It("should download and write the files to the testFiles Directory", func() {
-				d = NewDownloader(cmdExec, &wg, "appName", "0", "rootWorkingDirectory", false, false)
+				d = NewDownloader(cmdExec, &wg, "appName", "0", false, false)
 				readPath := currentDirectory
 				writePath := currentDirectory + "/test-download"
 
@@ -222,7 +222,7 @@ var _ = Describe("Downloader tests", func() {
 	Describe("Test Download() Function", func() {
 		Context("download the fake directory filtering out ignore.go and ignoreDir", func() {
 			It("should download and write the files to the testFiles Directory", func() {
-				d = NewDownloader(cmdExec, &wg, "appName", "0", "rootWorkingDirectory", false, false)
+				d = NewDownloader(cmdExec, &wg, "appName", "0", false, false)
 				readPath := currentDirectory
 				writePath := currentDirectory + "/test-download"
 

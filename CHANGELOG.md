@@ -1,3 +1,11 @@
+## 1.2.0 (Sep 13, 2016)
+ 
+ * Support for paths within applications
+
+FEATURES:
+
+ * Allow downloading of specific files and directories in running applications
+
 ## 1.1.0 (Jul 1, 2016)
 
  * Refactor for Windows
