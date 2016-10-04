@@ -98,7 +98,7 @@ func (d *downloader) Download(files, dirs []string, readPath, writePath string, 
 		files, dirs = d.parser.ExecParseDir(dirRPath)
 
 		d.wg.Add(1)
-		go d.Download(files, dirs, dirRPath, dirWPath, filterList)
+		d.Download(files, dirs, dirRPath, dirWPath, filterList)
 	}
 	return nil
 }
