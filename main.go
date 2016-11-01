@@ -465,7 +465,7 @@ func (c *DownloadPlugin) GetMetadata() plugin.PluginMetadata {
 		Name: "cf-download",
 		Version: plugin.VersionType{
 			Major: 1,
-			Minor: 1,
+			Minor: 2,
 			Build: 0,
 		},
 		Commands: []plugin.Command{
